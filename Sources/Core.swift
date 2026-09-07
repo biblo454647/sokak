@@ -10,6 +10,7 @@ enum Weather: String, Codable, CaseIterable, Identifiable {
 }
 
 enum Backdrop: String, Codable { case desktop, istanbul }
+enum SceneFilter: String { case weather, winter, all }
 
 struct Preferences: Codable, Equatable {
     var weather: Weather = .rain
@@ -21,14 +22,15 @@ struct Preferences: Codable, Equatable {
     var economical: Bool = false
     var matchSeason: Bool = true
     var windowGlass: Bool = true
+    var glassFocus: Double = 0.65
     var dimming: Double = 0.12
     var timerMinutes: Int = 0
     var display: String = "current"
-    var sceneID: String = "balat"
+    var sceneID: String = "galata-rain"
 
     init() {}
     private enum CodingKeys: String, CodingKey {
-        case weather, backdrop, intensity, wind, volume, sound, economical, matchSeason, windowGlass, dimming, timerMinutes, display, sceneID
+        case weather, backdrop, intensity, wind, volume, sound, economical, matchSeason, windowGlass, glassFocus, dimming, timerMinutes, display, sceneID
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -41,16 +43,18 @@ struct Preferences: Codable, Equatable {
         economical = try c.decodeIfPresent(Bool.self, forKey: .economical) ?? false
         matchSeason = try c.decodeIfPresent(Bool.self, forKey: .matchSeason) ?? true
         windowGlass = try c.decodeIfPresent(Bool.self, forKey: .windowGlass) ?? true
+        glassFocus = try c.decodeIfPresent(Double.self, forKey: .glassFocus) ?? 0.65
         dimming = try c.decodeIfPresent(Double.self, forKey: .dimming) ?? 0.12
         timerMinutes = try c.decodeIfPresent(Int.self, forKey: .timerMinutes) ?? 0
         display = try c.decodeIfPresent(String.self, forKey: .display) ?? "current"
-        sceneID = try c.decodeIfPresent(String.self, forKey: .sceneID) ?? "balat"
+        sceneID = try c.decodeIfPresent(String.self, forKey: .sceneID) ?? "galata-rain"
     }
 
     mutating func sanitize() {
         intensity = Self.unit(intensity, fallback: 0.48)
         wind = Self.unit(wind, fallback: 0.25)
         volume = Self.unit(volume, fallback: 0.35)
+        glassFocus = Self.unit(glassFocus, fallback: 0.65)
         dimming = min(0.65, Self.unit(dimming, fallback: 0.12))
         if ![0, 15, 30, 60, 120].contains(timerMinutes) { timerMinutes = 0 }
         if display != "current" && display != "all" && UInt32(display) == nil { display = "current" }
@@ -80,14 +84,20 @@ struct StreetScene: Codable, Identifiable, Equatable {
     let licenseURL: String
     let sourceURL: String
     var isPersonal: Bool? = nil
+    var conditions: [Weather]? = nil
     var resolution: String { "\(width) × \(height)" }
 
+    func suits(_ weather: Weather) -> Bool {
+        // Imported photos retain the owner's choice, including legacy imports.
+        if isPersonal == true { return winter == (weather == .snow) }
+        return conditions?.contains(weather) ?? (winter && weather == .snow)
+    }
+
     static func matching(_ weather: Weather, current: StreetScene?, scenes: [StreetScene]) -> String? {
-        let winter = weather == .snow
-        if let current, current.winter == winter { return current.id }
-        let preferred = winter ? "bagcilar-evening" : "balat"
-        return scenes.first { $0.id == preferred && $0.winter == winter }?.id
-            ?? scenes.first { $0.winter == winter }?.id
+        if let current, current.suits(weather) { return current.id }
+        let preferred = weather == .snow ? "bagcilar-evening" : weather == .rain ? "galata-rain" : "bosphorus-clouds"
+        return scenes.first { $0.id == preferred && $0.suits(weather) }?.id
+            ?? scenes.first { $0.suits(weather) }?.id
             ?? current?.id
             ?? scenes.first?.id
     }

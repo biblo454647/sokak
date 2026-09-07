@@ -1,5 +1,6 @@
 import AppKit
 import MetalKit
+import MetalPerformanceShaders
 import ImageIO
 
 struct WeatherUniforms {
@@ -13,13 +14,36 @@ struct WeatherUniforms {
     var photoSize: SIMD2<Float>
     var gentle: Float
     var glass: Float = 1
+    var focus: Float = 0.65
+    var padding0: Float = 0
+    var padding1: Float = 0
+    var padding2: Float = 0
 }
 
 final class WeatherFrameResources {
     private var scene: MTLTexture?
+    private var defocused: MTLTexture?
+    private var blur: MPSImageGaussianBlur?
+    private var blurSigma: Float = 0
+
+    func blurredScene(device: MTLDevice, command: MTLCommandBuffer, source: MTLTexture, sigma: Float) throws -> MTLTexture {
+        if defocused?.width != source.width || defocused?.height != source.height {
+            let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: source.width, height: source.height, mipmapped: false)
+            d.usage = [.shaderRead, .shaderWrite]; d.storageMode = .private
+            defocused = device.makeTexture(descriptor: d)
+        }
+        guard let defocused else { throw CocoaError(.fileReadTooLarge) }
+        if blur == nil || abs(blurSigma - sigma) > 0.05 {
+            blur = MPSImageGaussianBlur(device: device, sigma: sigma)
+            blur?.edgeMode = .clamp
+            blurSigma = sigma
+        }
+        blur?.encode(commandBuffer: command, sourceTexture: source, destinationTexture: defocused)
+        return defocused
+    }
     func sceneTexture(device: MTLDevice, width: Int, height: Int) throws -> MTLTexture {
         if let scene, scene.width == width, scene.height == height { return scene }
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: true)
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .private
         guard let texture = device.makeTexture(descriptor: descriptor) else { throw CocoaError(.fileReadTooLarge) }
@@ -109,7 +133,7 @@ final class WeatherGPU {
         if u.weather < 1.5 {
             encoder.setRenderPipelineState(particles)
             encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
-            let density = Float(u.weather < 0.5 ? 1350 : 760)
+            let density = Float(u.weather < 0.5 ? 360 : 760)
             let area = min(2.8, max(0.35, (u.size.x * u.size.y) / (1440 * 900)))
             let count = Int((70 + density * u.intensity) * area * (u.gentle > 0.5 ? 0.65 : 1))
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: count)
@@ -134,12 +158,21 @@ final class WeatherGPU {
         guard let outside = command.makeRenderCommandEncoder(descriptor: exterior) else { throw CocoaError(.coderInvalidValue) }
         encodeExterior(outside, uniforms: input, photo: photo)
         outside.endEncoding()
+        guard let blit = command.makeBlitCommandEncoder() else { throw CocoaError(.coderInvalidValue) }
+        blit.generateMipmaps(for: scene)
+        blit.endEncoding()
+
+        let defocused: MTLTexture
+        if input.hasPhoto > 0.5 && input.focus > 0.001 {
+            let sigma = (1 + input.focus * input.focus * 28) * Float(target.width) / input.size.x
+            defocused = try resources.blurredScene(device: device, command: command, source: scene, sigma: sigma)
+        } else { defocused = scene }
 
         guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
         var u = input
         encoder.setRenderPipelineState(pane)
         encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
-        encoder.setFragmentTexture(scene, index: 0)
+        encoder.setFragmentTexture(defocused, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         if !sprites.isEmpty {
             // Immutable per-submission data cannot be overwritten by a later CPU frame.
@@ -149,6 +182,7 @@ final class WeatherGPU {
             }
             guard let buffer else { encoder.endEncoding(); throw CocoaError(.fileReadTooLarge) }
             encoder.setRenderPipelineState(glass)
+            encoder.setFragmentTexture(scene, index: 0)
             encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
             encoder.setVertexBuffer(buffer, offset: 0, index: 1)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: sprites.count)
@@ -163,6 +197,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private var photo: MTLTexture?
     private var photoURL: URL?
     private let start = CACurrentMediaTime()
+    private let weatherOffset = Float.random(in: 0...5000)
     private var lastFrame: CFTimeInterval?
     private let surface = GlassSimulation()
     private let resources = WeatherFrameResources()
@@ -195,11 +230,11 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
         }
         lastFrame = now
         let u = WeatherUniforms(size: SIMD2(Float(view.bounds.width), Float(view.bounds.height)),
-                                time: Float(CACurrentMediaTime() - start), weather: preferences.weather.index,
+                                time: Float(CACurrentMediaTime() - start) + weatherOffset, weather: preferences.weather.index,
                                 intensity: Float(preferences.intensity), wind: Float(preferences.wind),
                                 dimming: Float(preferences.dimming), hasPhoto: photo == nil ? 0 : 1,
                                 photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: gentle ? 1 : 0,
-                                glass: preferences.windowGlass ? 1 : 0)
+                                glass: preferences.windowGlass ? 1 : 0, focus: Float(preferences.glassFocus))
         do {
             try gpu.encode(command: command, pass: pass, resources: resources, uniforms: u, photo: photo,
                            sprites: preferences.windowGlass ? surface.sprites : [])

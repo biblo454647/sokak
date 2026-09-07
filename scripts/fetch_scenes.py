@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Download original, explicitly reusable photographs and preserve provenance.
 
-Build-time tool only. Sokak itself makes no network requests.
+Build-time tool only. Photographs are always available offline in Sokak.
 """
 import hashlib
 import html
@@ -15,6 +15,10 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENES = [
+    ('galata-rain', 'Galata Köprüsü', 'Rain, taxis & the lights across the water', False, 'File:Rainy night Galata Bridge area Istanbul 2026.jpg'),
+    ('ayasofya-rain', 'Ayasofya', 'Lamplight on a rainy evening', False, 'File:Istanbul, Turkey (November 2023) - 041.jpg'),
+    ('courtyard-rain', 'İstanbul', 'A quiet courtyard after dark', False, 'File:Rainy mosque courtyard at night Istanbul 2026.jpg'),
+    ('bosphorus-clouds', 'Boğaziçi', 'A grey day on the water', False, 'File:Bosphorus, Istanbul (P1100253).jpg'),
     ('balat', 'Balat', 'An ordinary afternoon', False, 'File:Balat Street (1).jpg'),
     ('balat-lane', 'Balat', 'A neighbourhood café', False, 'File:Balat (Fatih, Istanbul) 09.jpg'),
     ('istiklal-snow', 'İstiklal Caddesi', 'Snow on the avenue', True, 'File:Istanbul photos by J.Lubbock 2015 471.jpg'),
@@ -69,11 +73,12 @@ def main():
                    sourceURL=info['descriptionurl'], originalURL=url,
                    description=plain(meta.get('ImageDescription', {}).get('value', '')),
                    sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
-                   modifications='Original file unchanged. The app crops to fill the display and adds a temporary weather overlay.')
+                   conditions=['snow'] if winter else ['rain', 'mist'] if ident in {'galata-rain', 'ayasofya-rain', 'courtyard-rain', 'bosphorus-clouds', 'goztepe-rain'} else [],
+                   modifications='Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay.')
         manifest.append(row)
         print(f'{ident}: {row["width"]} × {row["height"]}; {row["license"]}; {row["description"][:140]}', flush=True)
     (ROOT / 'Resources' / 'scenes.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
-    credits = ['# Photograph credits', '', 'The photographs are separate licensed works. Original files are bundled unchanged. Display cropping and weather effects are temporary. Each photograph retains the license linked below; CC BY-SA adaptations remain under that license. App source is separately licensed.', '']
+    credits = ['# Photograph credits', '', 'The photographs are separate licensed works. Original files are bundled unchanged. Display cropping, dimming, defocus, refraction and weather effects are temporary. Each photograph retains the license linked below; CC BY-SA adaptations remain under that license. App source is separately licensed.', '']
     for row in manifest:
         credits += [f'## {row["title"]} — {row["subtitle"]}', '', f'Photo: **{row["author"]}**, [{row["license"]}]({row["licenseURL"]}). [Source and original]({row["sourceURL"]}).', '', f'{row["width"]} × {row["height"]} pixels. `{row["filename"]}`. {row["modifications"]}', '']
     (ROOT / 'Resources' / 'PHOTO-CREDITS.md').write_text('\n'.join(credits))

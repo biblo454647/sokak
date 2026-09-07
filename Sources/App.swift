@@ -29,6 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return
         }
         overlay = OverlayController(model: model)
+        model.updater.beforeInstall = { [weak model] in model?.stop() }
+        model.updater.start()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         status.button?.target = self
         status.button?.action = #selector(statusClicked)

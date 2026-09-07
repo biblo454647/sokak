@@ -1,5 +1,89 @@
 [
   {
+    "id": "galata-rain",
+    "title": "Galata Köprüsü",
+    "subtitle": "Rain, taxis & the lights across the water",
+    "winter": false,
+    "filename": "galata-rain.jpg",
+    "width": 2560,
+    "height": 1920,
+    "author": "Furkan Akkurt",
+    "license": "CC BY-SA 4.0",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Rainy_night_Galata_Bridge_area_Istanbul_2026.jpg",
+    "originalURL": "https://upload.wikimedia.org/wikipedia/commons/8/80/Rainy_night_Galata_Bridge_area_Istanbul_2026.jpg",
+    "description": "Rainy night view from the Galata Bridge area in Istanbul, Turkey, with taxis, a mosque in the background, and wet road reflections.",
+    "sha256": "db5698b562da71dc67752b53e97330fb44650723e9232732be675237746131d4",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
+  },
+  {
+    "id": "ayasofya-rain",
+    "title": "Ayasofya",
+    "subtitle": "Lamplight on a rainy evening",
+    "winter": false,
+    "filename": "ayasofya-rain.jpg",
+    "width": 4032,
+    "height": 3024,
+    "author": "Another Believer",
+    "license": "CC BY-SA 4.0",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Istanbul,_Turkey_(November_2023)_-_041.jpg",
+    "originalURL": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Istanbul%2C_Turkey_%28November_2023%29_-_041.jpg",
+    "description": "Istanbul",
+    "sha256": "f05e00e8e29692f7df0b2ba9e8d3a636a794be2f098e4b850579874718c76c9a",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
+  },
+  {
+    "id": "courtyard-rain",
+    "title": "İstanbul",
+    "subtitle": "A quiet courtyard after dark",
+    "winter": false,
+    "filename": "courtyard-rain.jpg",
+    "width": 2560,
+    "height": 1920,
+    "author": "Furkan Akkurt",
+    "license": "CC BY-SA 4.0",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Rainy_mosque_courtyard_at_night_Istanbul_2026.jpg",
+    "originalURL": "https://upload.wikimedia.org/wikipedia/commons/8/88/Rainy_mosque_courtyard_at_night_Istanbul_2026.jpg",
+    "description": "A mosque courtyard on a rainy night in Istanbul, Turkey, with wet stone pavement and illuminated arcades.",
+    "sha256": "0c6572b4be0464cc3a17513c0bd301d80751333f3e43a9dd450bce9de066c0b4",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
+  },
+  {
+    "id": "bosphorus-clouds",
+    "title": "Boğaziçi",
+    "subtitle": "A grey day on the water",
+    "winter": false,
+    "filename": "bosphorus-clouds.jpg",
+    "width": 4000,
+    "height": 3000,
+    "author": "Matti Blume",
+    "license": "CC BY-SA 4.0",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Bosphorus,_Istanbul_(P1100253).jpg",
+    "originalURL": "https://upload.wikimedia.org/wikipedia/commons/0/05/Bosphorus%2C_Istanbul_%28P1100253%29.jpg",
+    "description": "Istanbul",
+    "sha256": "d7452499466955b2f1f6569f04ab638747b4abb485053450220b755acc32f55c",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
+  },
+  {
     "id": "balat",
     "title": "Balat",
     "subtitle": "An ordinary afternoon",
@@ -14,7 +98,8 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Balat_Street_%281%29.jpg",
     "description": "Balat'ta sokak",
     "sha256": "c9b761fd48c790a4271791367dc2038cc4b8fbca72aab074898e50289b7384bc",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "balat-lane",
@@ -31,7 +116,8 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Balat_%28Fatih%2C_Istanbul%29_09.jpg",
     "description": "Balat, a city district in Fatih district, in the European part of the Istanbul",
     "sha256": "ea4c0c0ccbbddd7434488bc17957eff01c83233400fafa3076c5fca07c967dd2",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "istiklal-snow",
@@ -48,7 +134,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/4/47/Istanbul_photos_by_J.Lubbock_2015_471.jpg",
     "description": "Snow on Istiklal Avenue, Beyoğlu, Istanbul",
     "sha256": "b31b0427275f17f1d18108cfef7fab559de8345cb4033ae6ad4db6364a1f89fc",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "istiklal-winter",
@@ -65,7 +154,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/7/70/Istanbul_photos_by_J.Lubbock_2015_473.jpg",
     "description": "Snow on Istiklal Avenue, Beyoğlu, Istanbul",
     "sha256": "8bee4b14ef61b7db03308f128073bf31c6f05e8a48b127770a3deac613cc89ef",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "sultanahmet-snow",
@@ -82,7 +174,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Blue_Mosque._Snow.jpg",
     "description": "Blue Mosque or Sultan Ahmed Mosque. Istambul. Snowy day.",
     "sha256": "e18c69fdb3e15f5e25298d3e7cce73ebe1070f3b37105ebdfe08e104dbdfe1d8",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "bagcilar-evening",
@@ -99,7 +194,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/d/d2/A_snowy_evening_in_Ba%C4%9Fc%C4%B1lar%2C_Istanbul.jpg",
     "description": "Bağcılar'da karlı bir akşam, İstanbul, Türkiye.",
     "sha256": "c2536be31f2ff1f93c1827f86242e78f6fb05ff333a2b689c4e99ae6d8845464",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "bagcilar-night",
@@ -116,7 +214,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/4/49/A_snowy_evening_in_Istanbul.jpg",
     "description": "Bağcılar'da karlı bir akşam, İstanbul, Türkiye.",
     "sha256": "6ec7877049be8aa611d5db637c84e7705ea8a4331b70ddd14c5c9061a25ef07f",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "bagcilar-park",
@@ -133,7 +234,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/b/bc/A_snowy_day_in_Ba%C4%9Fc%C4%B1lar%2C_Istanbul.jpg",
     "description": "Molla Gürani Parkı'nda karlı bir gün, Bağcılar, İstanbul, Türkiye.",
     "sha256": "bff94ffe65cd20f6225c7934ea78a1e7d01d814f7e729d80fe147d22563a9a45",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "snow"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "bagcilar-centre",
@@ -150,7 +254,8 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Town_center_of_Ba%C4%9Fc%C4%B1lar%2C_Istanbul.jpg",
     "description": "Bağcılar ilçe merkezi, İstanbul, Türkiye.",
     "sha256": "9ba57d5da92f35961e0fc340ca0a80f3c310b66916db6ccea4de1246d56702c1",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "bahcelievler",
@@ -167,7 +272,8 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/3/32/Cars_and_Streets_of_Istanbul%2C_Turkey_47.jpg",
     "description": "Istanbul formerly known as Byzantium and Constantinople, is the most populous city in Turkey and the country's economic, cultural and historic center. Istanbul is a transcontinental city in Eurasia, straddling the Bosporus strait (which separates Europe and Asia) between the Sea of Marmara and the Black Sea.",
     "sha256": "ef5c463a892e8488aff66e34c018f9a9574248170a05470c7c7a725405ef2ca1",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   },
   {
     "id": "goztepe-rain",
@@ -184,6 +290,10 @@
     "originalURL": "https://upload.wikimedia.org/wikipedia/commons/5/54/Another_Rainy_Day_-_panoramio.jpg",
     "description": "A street in Göztepe, Kadıköy, Istanbul",
     "sha256": "edbbe2c13f4c168d978215ea0e80cc5c713b704a03e78517eaf86e77c6636178",
-    "modifications": "Original file unchanged. The app crops to fill the display and adds a temporary weather overlay."
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "modifications": "Original file unchanged. The app temporarily crops, dims, defocuses and refracts the photograph behind a weather overlay."
   }
 ]

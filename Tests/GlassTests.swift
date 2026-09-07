@@ -14,7 +14,13 @@ import Foundation
         precondition(merged.drops.count == 1 && merged.merges == 1)
         precondition(abs(pow(merged.drops[0].radius, 3) - 189) < 0.01, "Merging must conserve water volume")
         for _ in 0..<120 { step(merged, 1 / 60, intensity: 0) }
-        precondition(merged.drops[0].position.y > 220 && !merged.trails.isEmpty, "A heavy bead must run and leave a trail")
+        precondition(abs(merged.drops[0].position.y - 200) < 0.1, "Small merged beads should stay pinned to the glass")
+        let runner = GlassSimulation(seed: 7)
+        runner.reset(size: size, weather: .rain, intensity: 0, populate: false)
+        runner.addImpact(at: SIMD2(400, 200), radius: 16)
+        for _ in 0..<600 { step(runner, 1 / 60, intensity: 0) }
+        let heavy = runner.drops.first { $0.radius > 15 }!
+        precondition(heavy.position.y > 220 && heavy.position.y < 440 && !runner.trails.isEmpty, "Heavy beads must glide slowly and leave a trail")
 
         let sixty = GlassSimulation(seed: 42), thirty = GlassSimulation(seed: 42)
         for _ in 0..<600 { step(sixty, 1 / 60) }
@@ -23,7 +29,12 @@ import Foundation
         for (a, b) in zip(sixty.drops, thirty.drops) {
             precondition(abs(a.position.y - b.position.y) < 0.01 && abs(a.radius - b.radius) < 0.001)
         }
-        precondition(sixty.impacts > 40 && sixty.merges > 0 && !sixty.trails.isEmpty)
+        precondition(sixty.impacts > 10 && sixty.impacts < 100 && sixty.merges > 0)
+        precondition(sixty.drops.filter { $0.velocity < 0.1 }.count > sixty.drops.count * 9 / 10, "At least 90% of the glass beads should remain pinned")
+        precondition(sixty.drops.allSatisfy { $0.velocity <= 24 }, "Runoff must never become a fast sheet of streaks")
+        let another = GlassSimulation(seed: 17)
+        for _ in 0..<600 { step(another, 1 / 60) }
+        precondition(sixty.drops.first?.position != another.drops.first?.position, "Sessions must not replay the same glass pattern")
         let before = sixty.elapsed
         step(sixty, .nan); step(sixty, -2)
         precondition(sixty.elapsed == before)

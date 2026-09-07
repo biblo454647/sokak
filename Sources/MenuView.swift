@@ -68,6 +68,10 @@ struct MenuView: View {
                 VStack(spacing: 11) {
                     slider("Intensity", symbol: "drop", value: $model.preferences.intensity, ending: model.preferences.intensity < 0.33 ? "Light" : model.preferences.intensity < 0.7 ? "Steady" : "Heavy")
                     slider("Wind", symbol: "wind", value: $model.preferences.wind, ending: model.preferences.wind < 0.33 ? "Calm" : model.preferences.wind < 0.7 ? "Breezy" : "Gusty")
+                    if model.preferences.windowGlass && model.preferences.backdrop == .istanbul {
+                        slider("Focus", symbol: "camera.aperture", value: $model.preferences.glassFocus, ending: model.preferences.glassFocus < 0.3 ? "Street" : model.preferences.glassFocus < 0.75 ? "Glass" : "Soft")
+                            .help("Keep the glass sharp and soften the street behind it.")
+                    }
                 }
                 Divider().overlay(Color.white.opacity(0.05))
                 VStack(spacing: 10) {
@@ -81,7 +85,7 @@ struct MenuView: View {
                         Toggle("Ambient sound", isOn: $model.preferences.sound).labelsHidden().toggleStyle(.switch).controlSize(.small)
                     }
                     if model.preferences.sound {
-                        slider("Volume", symbol: "speaker.wave.1", value: $model.preferences.volume, ending: "\(Int(model.preferences.volume * 100))%")
+                        slider("Volume", symbol: "speaker.wave.1", value: $model.preferences.volume, ending: "\(Int((model.preferences.volume * 100).rounded()))%")
                     }
                 }
                 HStack(spacing: 12) {
@@ -105,7 +109,8 @@ struct MenuView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Toggle("Window glass · droplets & winter frost", isOn: $model.preferences.windowGlass)
                         Toggle("Low power · 30 fps", isOn: $model.preferences.economical)
-                        Toggle("Match photos to the season", isOn: $model.preferences.matchSeason)
+                        Toggle("Match photos to the weather", isOn: $model.preferences.matchSeason)
+                        UpdateSettings(updater: model.updater)
                         slider("Dimming", symbol: "moon", value: $model.preferences.dimming, ending: "\(Int(model.preferences.dimming * 100))%", range: 0...0.65)
                         Text("Pauses when your screen sleeps or your session locks. ⌃⌥⌘S starts or stops; ⌃⌥⌘M mutes.")
                             .font(.system(size: 10)).foregroundStyle(pearl.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
@@ -160,20 +165,25 @@ struct MenuView: View {
                 Text("Somewhere familiar.").font(.system(size: 26, weight: .regular, design: .serif))
                 Text("Real Istanbul photographs, kept here offline.").font(.system(size: 11)).foregroundStyle(pearl.opacity(0.6))
             }
-            Picker("Photo season", selection: $model.winterOnly) {
-                Text("All streets").tag(false)
-                Text("Winter streets").tag(true)
+            Picker("Photograph weather", selection: $model.sceneFilter) {
+                Text("For \(model.preferences.weather.title.lowercased())").tag(SceneFilter.weather)
+                Text("Winter").tag(SceneFilter.winter)
+                Text("All streets").tag(SceneFilter.all)
             }.pickerStyle(.segmented).labelsHidden()
+            if !model.preferences.matchSeason {
+                Text("Your photo choice is fixed. Turn on weather matching in Details to choose automatically.")
+                    .font(.system(size: 10)).foregroundStyle(pearl.opacity(0.6)).fixedSize(horizontal: false, vertical: true)
+            }
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 13) {
-                    ForEach(model.scenes.filter { !model.winterOnly || $0.winter }) { scene in
+                    ForEach(model.visibleScenes) { scene in
                         Button { model.select(scene) } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 ZStack(alignment: .topTrailing) {
                                     if let image = model.thumbnail(scene) {
                                         Image(nsImage: image).resizable().scaledToFill().frame(width: 166, height: 108).clipped()
                                     }
-                                    if scene.winter { Image(systemName: "snowflake").font(.system(size: 10, weight: .bold)).padding(6).background(.black.opacity(0.5)).clipShape(Circle()).padding(6) }
+                                    if scene.winter || scene.suits(.rain) { Image(systemName: scene.winter ? "snowflake" : "cloud.rain").font(.system(size: 10, weight: .bold)).padding(6).background(.black.opacity(0.5)).clipShape(Circle()).padding(6) }
                                     if model.preferences.sceneID == scene.id {
                                         RoundedRectangle(cornerRadius: 8).stroke(sea, lineWidth: 3)
                                         Image(systemName: "checkmark.circle.fill").foregroundStyle(sea).padding(6).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -206,6 +216,7 @@ struct MenuView: View {
         HStack {
             Text("İSTANBUL, AT YOUR PACE").font(.system(size: 8, weight: .medium)).tracking(1.25).foregroundStyle(pearl.opacity(0.35))
             Spacer()
+            UpdateButton(updater: model.updater) { model.closePopover?(); model.stop() }
             Menu {
                 Button("Browse Istanbul photographs") { model.libraryVisible = true }
                 Button("Add your own photograph…") { model.importPhoto() }
@@ -227,6 +238,29 @@ struct MenuView: View {
             Text(title).font(.system(size: 11)).frame(width: 49, alignment: .leading)
             Slider(value: value, in: range).controlSize(.mini).accessibilityLabel(title)
             Text(ending).font(.system(size: 10, design: .monospaced)).foregroundStyle(pearl.opacity(0.5)).frame(width: 40, alignment: .trailing)
+        }
+    }
+}
+
+private struct UpdateButton: View {
+    @ObservedObject var updater: AppUpdater
+    var beforeCheck: () -> Void
+    var body: some View {
+        Button { beforeCheck(); updater.check() } label: {
+            Label("Updates", systemImage: "arrow.down.circle").font(.system(size: 10))
+        }.buttonStyle(.plain).foregroundStyle(sea).disabled(!updater.canCheck)
+            .help("Sokak \(AppUpdater.version) · Check GitHub for updates")
+            .accessibilityLabel("Check for updates")
+    }
+}
+
+private struct UpdateSettings: View {
+    @ObservedObject var updater: AppUpdater
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle("Check for updates automatically", isOn: Binding(get: { updater.automaticallyChecks }, set: updater.setAutomaticChecks))
+            Text("Sokak \(AppUpdater.version) · Install only when you choose.")
+                .font(.system(size: 10)).foregroundStyle(pearl.opacity(0.5))
         }
     }
 }

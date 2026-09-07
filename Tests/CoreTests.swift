@@ -26,6 +26,7 @@ import Foundation
         precondition(Preferences.decode(encoded) == preferences)
         var legacy = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
         legacy.removeValue(forKey: "windowGlass")
+        legacy.removeValue(forKey: "glassFocus")
         let migrated = Preferences.decode(try JSONSerialization.data(withJSONObject: legacy))
         precondition(migrated == preferences && migrated.windowGlass)
         preferences.windowGlass = false
@@ -34,11 +35,17 @@ import Foundation
 
         let data = try Data(contentsOf: URL(fileURLWithPath: "Resources/scenes.json"))
         let scenes = try JSONDecoder().decode([StreetScene].self, from: data)
-        let summer = scenes.first { !$0.winter }!
+        let summer = scenes.first { $0.id == "balat" }!
         let winter = scenes.first { $0.winter }!
         let selected = StreetScene.matching(.snow, current: summer, scenes: scenes)
         precondition(scenes.first { $0.id == selected }!.winter)
-        precondition(StreetScene.matching(.rain, current: summer, scenes: scenes) == summer.id)
+        let rainy = StreetScene.matching(.rain, current: summer, scenes: scenes)
+        precondition(rainy == "galata-rain", "Old sunny preferences must migrate to a rain-appropriate photograph")
+        precondition(scenes.first { $0.id == rainy }!.suits(.rain))
+        precondition(!summer.suits(.rain))
+        let ayasofya = scenes.first { $0.id == "ayasofya-rain" }!
+        precondition(StreetScene.matching(.rain, current: ayasofya, scenes: scenes) == ayasofya.id)
+        precondition(StreetScene.matching(.mist, current: summer, scenes: scenes) == "bosphorus-clouds")
         precondition(StreetScene.matching(.snow, current: winter, scenes: scenes) == winter.id)
         precondition(StreetScene.matching(.snow, current: summer, scenes: [summer]) == summer.id)
         precondition(StreetScene.matching(.rain, current: nil, scenes: []) == nil)

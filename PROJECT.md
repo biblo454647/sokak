@@ -1,7 +1,7 @@
 # Sokak
 
 - Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and an Istanbul photograph library.
-- Current release: 1.2.0, weather viewed through window glass. Rain includes surface-water coalescence, runoff, refracted photographs, wet trails and glass taps; snow includes depth, soft close flakes, pane contact and edge frost.
+- Current release: 1.3.0. Calm pinned water beads, occasional slow runoff, optical refraction and adjustable photograph focus; irregular outdoor rain; 15 photographs with weather-aware matching; signed GitHub updates through Sparkle.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak
@@ -10,12 +10,12 @@
 - Local checkout: any directory chosen by the contributor; commands run from the repository root.
 - Minimum target: macOS 13; universal arm64 and x86_64; Metal required.
 - Application identifier: `com.sokakapp.Sokak`.
-- Signing: current releases are ad-hoc signed and unnotarized.
+- Signing: current releases are ad-hoc signed and unnotarized. The app includes an ad-hoc library-validation exception for the bundled, upstream-signed Sparkle framework. Update feeds and archives have separate Ed25519 signatures; private keys are kept outside the repository in macOS Keychain.
 - Run: open `dist/Sokak.app`; click the menu-bar cloud.
 - Build: `bash scripts/build.sh` using Apple Command Line Tools and a recent Swift compiler.
 - Test: compile and run `Tests/CoreTests.swift` and `Tests/GlassTests.swift`, run the app with `--self-test docs/qa --motion-preview`, then `python3 scripts/verify_assets.py`. See [Validation](docs/VALIDATION.md) for exact commands and device coverage.
-- Release: build and validate the reviewed source, tag it, and upload the matching ZIP and SHA-256 to GitHub Releases. Download the uploaded asset and verify its checksum. Identify signing and device-testing limitations in the release notes.
-- Hosted services / Cloudflare resources: none.
-- Scheduled tasks / LaunchAgents / login items: none.
+- Release: build and validate reviewed source, generate the signed feed with `bash scripts/make_appcast.sh`, then publish the matching ZIP and SHA-256 to GitHub Releases before publishing `appcast.xml`. Download and verify the assets and signed feed. See `docs/RELEASING.md`.
+- Hosted services: public GitHub Releases and a signed appcast served from this repository. Cloudflare resources: none.
+- Scheduled tasks / LaunchAgents / login items: none. Optional daily update checks run only inside the app; off by default.
 - User data: standard preferences and `~/Library/Application Support/Sokak/Imports`, local to each user. Personal imports are excluded from build and test artifacts.
 - Retire: quit and remove the app. Personal imports and preferences can be kept or removed separately. There are no cloud services to decommission.

@@ -12,6 +12,8 @@ struct Uniforms {
     float2 photoSize;
     float gentle;
     float glass;
+    float focus;
+    float padding0, padding1, padding2;
 };
 struct VertexOut {
     float4 position [[position]];
@@ -66,13 +68,19 @@ vertex VertexOut particleVertex(uint vid [[vertex_id]], uint iid [[instance_id]]
     float t=u.time*(u.gentle>.5 ? .65 : 1.0);
     float2 p, extent;
     if (u.weather < .5) {
-        float speed=mix(380.0,1680.0,depth)*(0.8+u.intensity*.4);
-        float gust=sin(t*.43)*.65+sin(t*.91+1.4)*.35;
-        float slope=.025+u.wind*(.28+gust*.12);
-        float travel=t*speed;
-        p.y=fmod(r1*(u.size.y+180)+travel,u.size.y+180)-90;
-        p.x=fmod(r2*(u.size.x+400)+travel*slope+sin(t*.35)*u.wind*20,u.size.x+400)-200;
-        extent=float2(mix(.45,1.45,depth),mix(6.0,27.0,depth)*(0.65+r3*.7));
+        // A new position, depth and shape at each off-screen birth. There is no
+        // wrapping sheet of identical streaks and no synchronised gust cycle.
+        float duration=mix(7.0,18.0,r1);
+        float life=t/duration+r2;
+        float generation=floor(life), phase=fract(life);
+        float birth=seed+generation*73.71;
+        depth=pow(hash(birth+5),1.6);
+        r3=hash(birth+27);
+        float gust=noise(float2(t*.045,seed*.007));
+        float slope=(hash(birth+12)-.5)*.045+u.wind*(.08+gust*.13);
+        p.y=phase*(u.size.y+160)-80;
+        p.x=hash(birth+44)*(u.size.x+320)-160+phase*u.size.y*slope;
+        extent=float2(mix(.55,1.25,depth),mix(1.8,5.5,depth)*(.7+r3*.5));
         p += float2(c.x*extent.x+c.y*extent.y*slope,c.y*extent.y);
     } else {
         float speed=mix(13.0,122.0,depth)*(0.65+r3*.6);
@@ -93,10 +101,10 @@ fragment float4 particleFragment(VertexOut in [[stage_in]], constant Uniforms &u
     float alpha;
     float3 tint;
     if (u.weather<.5) {
-        float width=exp(-in.uv.x*in.uv.x*3.8);
-        float tail=pow(max(0.0,1.0-abs(in.uv.y)),.55);
-        alpha=width*tail*mix(.12,.52,in.depth)*(.65+in.seed*.55);
-        tint=mix(float3(.62,.75,.82),float3(.89,.95,1),in.depth);
+        float soft=exp(-dot(in.uv*float2(1.7,1.3),in.uv*float2(1.7,1.3)));
+        soft*=1-smoothstep(.7,1.0,max(abs(in.uv.x),abs(in.uv.y)));
+        alpha=soft*mix(.045,.17,in.depth)*(.55+in.seed*.45);
+        tint=float3(.79,.83,.84);
     } else {
         float d=length(in.uv);
         float near=smoothstep(.84,1.0,in.depth);
@@ -119,13 +127,8 @@ fragment float4 paneFragment(VertexOut in [[stage_in]], constant Uniforms &u [[b
     float cold=u.weather>.5 && u.weather<1.5 ? 1.0 : .13;
     float corners=1-smoothstep(.0,.12+grain*.05,edge);
     float frost=corners*cold*(.075+.17*u.intensity)*(.55+grain*.45);
-    float blur=(u.hasPhoto>.5 ? (.30+frost*15) : 0.0);
-    if (blur>.01) {
-        float2 px=blur/u.size;
-        float4 soft=(scene.sample(s,uv+float2(px.x,px.y))+scene.sample(s,uv-float2(px.x,px.y))+
-                     scene.sample(s,uv+float2(-px.x,px.y))+scene.sample(s,uv+float2(px.x,-px.y)))*.25;
-        color=mix(color,soft,.5+frost);
-    }
+    // The photograph is optically defocused in a cached MPS Gaussian pass.
+    // Droplets below still sample the sharp exterior, like little convex lenses.
     float3 ice=float3(.77,.85,.89);
     color=float4(color.rgb*(1-frost)+ice*frost,color.a+(1-color.a)*frost);
     return color;
@@ -167,7 +170,7 @@ float4 overTint(float4 base, float3 tint, float alpha) {
     return float4(base.rgb*(1-alpha)+tint*alpha,base.a+(1-base.a)*alpha);
 }
 fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[buffer(0)]], texture2d<float> scene [[texture(0)]]) {
-    constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear);
+    constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);
     float2 q=in.local;
     float fade=in.opacity;
     if (in.kind>2.5) {
@@ -179,40 +182,53 @@ fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[b
         alpha*=smoothstep(0.0,.12,in.age);
         return float4(float3(.88,.94,.98)*alpha,alpha);
     }
-    if (in.kind>1.5) {
-        // Short, scattered satellite drops at contact, never a flashing full ring.
-        float r=length(q), a=atan2(q.y,q.x);
-        float dots=pow(max(0.0,sin(a*7+in.seed*19)),16.0);
-        float alpha=exp(-pow((r-.67)*24,2.0))*dots*fade*.65;
-        return float4(float3(.82,.91,.98)*alpha,alpha);
-    }
     if (in.kind>.5) {
         float mask=(1-smoothstep(.25,1.0,abs(q.x)))*(1-smoothstep(.72,1.0,abs(q.y)))*fade;
         float2 right=float2(in.axis.y,-in.axis.x);
         float2 offset=right*q.x*in.extent.x*1.5/u.size;
-        float4 wet=scene.sample(s,in.screenUV+offset)*mask*(u.hasPhoto>.5 ? .58 : .12);
-        float glint=exp(-pow((q.x+.48)*9,2.0))*mask*.055;
+        float4 wet=scene.sample(s,in.screenUV+offset)*mask*(u.hasPhoto>.5 ? .12 : .025);
+        float glint=exp(-pow((q.x+.48)*9,2.0))*mask*.045;
         return overTint(wet,float3(.78,.88,.93),glint);
     }
-    // Convex, slightly pear-shaped lenses with a bright rim and a shaded underside.
-    q.x*=1.0-.13*q.y;
-    float r=length(q);
-    float mask=(1-smoothstep(.83,1.0,r))*fade;
+    // A pinned water bead: a soft, imperfect contact boundary; inverted exterior;
+    // total internal reflection in the upper crescent and a bright lower caustic.
+    // Small beads are spherical; only the heavier, sliding ones have a pear shape.
+    float weight=smoothstep(3.0,12.0,in.extent.x);
+    q.x*=1.0-(.025+weight*.045)*q.y;
+    float angle=atan2(q.y,q.x);
+    float distortion=(sin(angle*3+in.seed*61)*.011+sin(angle*5-in.seed*37)*.007)*weight;
+    float r=length(q)+distortion;
+    float aa=max(fwidth(r)*.85,.012);
+    float mask=(1-smoothstep(.94-aa,.94+aa,r))*fade;
     if (mask<.001) return float4(0);
-    float2 normal=q/sqrt(max(.13,1-dot(q,q)*.8));
-    float2 offset=(-q*4.6+normal*.35)*in.extent/u.size;
-    float4 lens=scene.sample(s,in.screenUV+offset);
-    float rim=exp(-pow((r-.83)*15,2.0));
-    float light=max(0.0,dot(normalize(float2(-.55,-.83)),q/max(.001,r)));
-    float shadow=max(0.0,dot(normalize(float2(.35,.94)),q/max(.001,r)));
-    float spot=exp(-dot((q-float2(-.28,-.43))*float2(15,22),(q-float2(-.28,-.43))*float2(15,22)));
+    float2 center=in.screenUV-in.local*in.extent/u.size;
+    float bend=1.0+pow(clamp(r,0.0,1.0),3.0)*1.8;
+    float2 lensUV=center-q*float2(.065,.095)*bend*(.8+in.seed*.35);
+    float3 refracted=scene.sample(s,clamp(lensUV,.001,.999)).rgb;
+    float3 sky=scene.sample(s,float2(clamp(center.x-q.x*.12,.02,.98),.08+(.9-r)*.08)).rgb;
+    float3 ground=scene.sample(s,float2(clamp(center.x+q.x*.08,.02,.98),.82+q.y*.08)).rgb;
+    float rim=exp(-pow((r-.865)/.057,2.0));
+    float inner=exp(-pow((r-.75)/.12,2.0));
+    float upper=1-smoothstep(-.6,.25,q.y);
+    float lower=smoothstep(.12,.8,q.y);
+    float fresnel=pow(clamp(r/.96,0.0,1.0),6.0);
+    float3 optical=mix(refracted,ground*.18,fresnel*.85);
+    optical*=1.0-upper*(.46+inner*.4);
+    float caustic=exp(-pow((q.y-(.50-.16*q.x*q.x))/.12,2.0))*(1-smoothstep(.38,.85,abs(q.x)));
+    optical=mix(optical,sky*.88+float3(.12),caustic*.8);
+    float fineRim=exp(-pow((r-.914)/max(.019,aa*.55),2.0));
+    float shine=(fineRim*(.10+.60*lower)+rim*lower*.20)*(.75+in.seed*.25);
+    float spot=exp(-dot((q-float2(-.32,-.63))*float2(15,24),(q-float2(-.32,-.63))*float2(15,24)))*.24;
+    float4 lens;
     if (u.hasPhoto>.5) {
-        lens.rgb*=1.0-rim*shadow*.27;
-        lens*=mask;
+        lens=float4(optical*mask,mask);
+        return overTint(lens,clamp(sky*.6+.42,0.0,1.0),(shine+spot)*mask);
     } else {
-        lens*=mask*.18;
-        lens=overTint(lens,float3(.06,.10,.12),rim*shadow*mask*.12);
+        // A transparent pane never reads other apps' pixels. Paired dark and
+        // bright menisci remain legible over both light and dark desktop content.
+        float shadow=(rim*(.24+upper*.42)+inner*upper*.20)*mask;
+        lens=float4(float3(.012,.019,.023)*shadow,shadow);
+        float light=(shine*.90+caustic*.23+spot)*mask;
+        return overTint(lens,float3(.91,.95,.97),light);
     }
-    float shine=(rim*(.035+light*.32)+spot*.48)*mask;
-    return overTint(lens,float3(.90,.96,1.0),shine);
 }

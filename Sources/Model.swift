@@ -24,9 +24,13 @@ enum Assets {
 }
 
 final class AppModel: ObservableObject {
+    let updater = AppUpdater()
     @Published var preferences: Preferences { didSet {
         var checked = preferences
         checked.sanitize()
+        if checked.matchSeason, let id = StreetScene.matching(checked.weather, current: scenes.first { $0.id == checked.sceneID }, scenes: scenes) {
+            checked.sceneID = id
+        }
         if checked != preferences { preferences = checked; return }
         if let data = try? JSONEncoder().encode(preferences) { defaults.set(data, forKey: "preferences-v1") }
         if oldValue.timerMinutes != preferences.timerMinutes && running { clock.start(minutes: preferences.timerMinutes) }
@@ -38,7 +42,7 @@ final class AppModel: ObservableObject {
     @Published var remaining: Int?
     @Published var displays: [(id: String, name: String)] = []
     @Published var libraryVisible = false
-    @Published var winterOnly = false
+    @Published var sceneFilter: SceneFilter = .weather
     var onChange: (() -> Void)?
     var onRunningChange: (() -> Void)?
     var closePopover: (() -> Void)?
@@ -59,6 +63,7 @@ final class AppModel: ObservableObject {
             scenes += personal.filter { $0.isPersonal == true && FileManager.default.fileExists(atPath: Assets.url(for: $0).path) }
         }
         if !scenes.contains(where: { $0.id == preferences.sceneID }), let first = scenes.first { preferences.sceneID = first.id }
+        matchPhoto()
         refreshDisplays()
     }
 
@@ -93,6 +98,7 @@ final class AppModel: ObservableObject {
     func toggle() { running ? stop() : start() }
     func start() {
         error = nil
+        matchPhoto()
         clock.start(minutes: preferences.timerMinutes)
         remaining = clock.remaining(at: Date())
         running = true
@@ -106,7 +112,20 @@ final class AppModel: ObservableObject {
         remaining = nil
         onRunningChange?()
     }
-    func select(_ scene: StreetScene) { preferences.sceneID = scene.id }
+    private func matchPhoto() {
+        if preferences.matchSeason, let id = StreetScene.matching(preferences.weather, current: scene, scenes: scenes), id != preferences.sceneID {
+            preferences.sceneID = id
+        }
+    }
+    func select(_ scene: StreetScene) {
+        var next = preferences
+        next.sceneID = scene.id
+        if !scene.suits(next.weather) { next.matchSeason = false }
+        preferences = next
+    }
+    var visibleScenes: [StreetScene] {
+        scenes.filter { sceneFilter == .all || (sceneFilter == .winter ? $0.winter : $0.suits(preferences.weather)) }
+    }
 
     func importPhoto() {
         closePopover?()
@@ -138,7 +157,7 @@ final class AppModel: ObservableObject {
                 let personal = self.scenes.filter { $0.isPersonal == true } + [scene]
                 try JSONEncoder().encode(personal).write(to: Assets.imports.appendingPathComponent("catalog.json"), options: .atomic)
                 self.scenes.append(scene)
-                self.preferences.sceneID = id
+                self.select(scene)
                 self.preferences.backdrop = .istanbul
             } catch { self.error = "Could not add this photo: \(error.localizedDescription)" }
         }

@@ -14,7 +14,7 @@ swiftc -O -swift-version 5 Sources/Core.swift Sources/GlassSimulation.swift Test
 .build/glass-tests
 python3 scripts/verify_assets.py
 dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa --motion-preview
-codesign --verify --strict --verbose=2 dist/Sokak.app
+codesign --verify --deep --strict --verbose=2 dist/Sokak.app
 lipo -archs dist/Sokak.app/Contents/MacOS/Sokak
 ```
 
@@ -24,12 +24,12 @@ The self-test requires a macOS graphics session and Metal. Generated frames and 
 
 - Universal release compilation targets `arm64-apple-macosx13.0` and `x86_64-apple-macosx13.0`; `lipo` checks the packaged architectures.
 - The ad-hoc hardened-runtime signature is verified for bundle integrity. This does not establish Developer ID identity or Apple notarization.
-- All eleven original photograph hashes and dimensions match the manifest. Six are winter photographs. Each has author, source, and license links.
+- All fifteen original photograph hashes and dimensions match the manifest. Six are winter photographs; five are explicitly suitable for rain. Each has author, source, and license links.
 - All three 46-second stereo ambience files decode and prepare for playback.
-- Core tests cover timer expiry and cancellation, rounding, no-timer sessions, corrupted preferences, nonfinite and out-of-range settings, persistence, display and timer validation, and seasonal photograph matching.
-- Migration checks preserve existing 1.1 preferences while enabling window glass by default, and preserve an explicitly disabled glass setting.
-- Surface-water tests cover volume conservation when beads merge, gravity and runoff, wet trails, irregular impacts, equivalent 30/60 fps stepping, bounded memory, suspended-frame recovery and weather changes.
-- Integration checks exercise published-settings recovery and ensure the test library contains only the eleven bundled scenes.
+- Core tests cover timer expiry and cancellation, rounding, no-timer sessions, corrupted preferences, nonfinite and out-of-range settings, persistence, display and timer validation, and weather-aware matching. Sunny rain selections migrate to Galata; suitable explicit choices remain selected.
+- Migration checks preserve existing preferences, supply defaults for the glass and focus controls, and preserve an explicitly disabled glass setting.
+- Surface-water tests cover volume conservation, small merged beads remaining pinned, slow heavy-drop runoff, wet trails, irregular impacts, equivalent 30/60 fps stepping, distinct session patterns, bounded memory, suspended-frame recovery and weather changes. More than 90% of beads remain pinned in the tested calm scene; runoff is capped at 24 logical points per second.
+- Integration checks exercise published-settings recovery and exclude personal imports from the bundled test library.
 - The actual Metal pipelines render rain, snow, and mist into opaque photograph frames and transparent desktop frames. Alpha-channel checks distinguish the two modes.
 - Glass-on versus glass-off renders verify visible pane contact, while frames a second apart verify temporal change. The motion-preview option exports 300 consecutive frames each for rain and snow through the same renderer and simulation used by the app.
 - A red reference photograph passes through the image pipeline to check color-channel preservation after explicit RGBA normalization.
@@ -41,7 +41,13 @@ Photograph upload and test readback textures use Metal's hardware-appropriate de
 
 The app has been exercised through its native interface for weather selection, desktop and photograph modes, seasonal snow matching, winter filtering, photograph selection, sound on/off, low-power mode, timer selection, starting and pausing, and Escape from an immersive session.
 
-The 1.2 window-glass toggle was checked in both positions, including its enabled default with existing preferences. Rain and snow immersive sessions were started in the native app, the rain pane was visually inspected, and Escape returned the app to its paused menu. Rain and snow were also inspected using app-owned frame exports and consecutive-frame previews. This is visual QA, not a claim that the effect reproduces every physical property of water or snow.
+Window glass, rain and snow immersive sessions, and Escape back to a paused menu have been exercised. Version 1.3 adds app-owned frame and consecutive-frame inspection for the focused beads, blurred background and calmer motion. This is visual QA, not a claim that the effect reproduces every physical property of water or snow.
+
+## Updater validation
+
+An isolated development app with a separate bundle identifier and an older build number was updated through the native Sparkle interface, using a loopback fixture server. A modified signed feed was rejected; a one-byte-modified ZIP was rejected before extraction. The valid ZIP reached Install and Relaunch, replaced build 4 with build 5, and relaunched automatically. A changed volume preference survived. Checking again reported that 1.3.0 was current. The loopback feed and its HTTP testing exception are confined to ignored QA copies; the shipped feed uses HTTPS.
+
+The release script verifies feed and archive signatures using CryptoKit and only the public key. It does not need Keychain access for verification. Update source, key, strict signature requirements, disabled system profiling, and manual installation defaults are recorded in the shipped Info.plist. See [Releasing updates](RELEASING.md).
 
 Start/pause and sound shortcuts have been checked with app-targeted key events. Carbon global registration succeeds without requesting Accessibility access. Physical keyboard dispatch while another app is active still needs device testing. The menu controls remain available if a shortcut conflicts.
 

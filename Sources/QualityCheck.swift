@@ -8,8 +8,8 @@ enum QualityCheck {
     static func run(output: URL, model: AppModel) throws {
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         let gpu = try WeatherGPU()
-        guard model.scenes.count == 11, model.scenes.allSatisfy({ $0.isPersonal != true }) else { throw CocoaError(.fileReadCorruptFile) }
-        guard MemoryLayout<WeatherUniforms>.stride == 48, MemoryLayout<GlassSprite>.stride == 48 else { throw CocoaError(.coderInvalidValue) }
+        guard !model.scenes.isEmpty, model.scenes.allSatisfy({ $0.isPersonal != true }) else { throw CocoaError(.fileReadCorruptFile) }
+        guard MemoryLayout<WeatherUniforms>.stride == 64, MemoryLayout<GlassSprite>.stride == 48 else { throw CocoaError(.coderInvalidValue) }
         var report: [String: Any] = [
             "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development",
             "scenes": model.scenes.count,
@@ -37,7 +37,7 @@ enum QualityCheck {
         report["photoColorRegression"] = "passed"
         var frames: [[String: Any]] = []
         for weather in Weather.allCases {
-            let sceneID = weather == .snow ? "bagcilar-evening" : "goztepe-rain"
+            let sceneID = weather == .snow ? "bagcilar-evening" : "galata-rain"
             guard let scene = model.scenes.first(where: { $0.id == sceneID }) else { throw CocoaError(.fileNoSuchFile) }
             let photo = try gpu.loadPhoto(Assets.url(for: scene))
             for desktop in [false, true] {
@@ -51,7 +51,9 @@ enum QualityCheck {
                     let later = try render(gpu: gpu, weather: weather, photo: desktop ? nil : photo, time: 14.7)
                     let contact = difference(result.pixels, dry.pixels)
                     let movement = difference(result.pixels, later.pixels)
-                    guard contact > 0.04, movement > 0.1 else { throw CocoaError(.coderInvalidValue) }
+                    guard contact > 0.04, movement > 0.001 else {
+                        throw NSError(domain: "Sokak.QA", code: 1, userInfo: [NSLocalizedDescriptionKey: "\(name): glass difference \(contact), temporal difference \(movement)"])
+                    }
                     frames[frames.count-1]["glassDifference"] = contact
                     frames[frames.count-1]["temporalDifference"] = movement
                 }
@@ -140,7 +142,7 @@ enum QualityCheck {
     private static func motionPreviews(gpu: WeatherGPU, model: AppModel, output: URL) throws {
         let width = 960, height = 600
         for weather in [Weather.rain, .snow] {
-            let scene = model.scenes.first { $0.id == (weather == .rain ? "goztepe-rain" : "bagcilar-evening") }!
+            let scene = model.scenes.first { $0.id == (weather == .rain ? "galata-rain" : "bagcilar-evening") }!
             let photo = try gpu.loadPhoto(Assets.url(for: scene))
             let url = output.appendingPathComponent(weather.rawValue + "-window.mp4")
             if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }

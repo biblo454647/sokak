@@ -5,10 +5,13 @@ import json
 from pathlib import Path
 import plistlib
 import subprocess
+from fetch_scenes import SCENES
 
 root = Path(__file__).resolve().parents[1]
 scenes = json.loads((root / 'Resources/scenes.json').read_text())
-assert len(scenes) == 11 and len({s['id'] for s in scenes}) == 11
+assert {s['id'] for s in scenes} == {s[0] for s in SCENES}
+assert len({s['id'] for s in scenes}) == len(scenes)
+assert {s['id'] for s in scenes if 'rain' in s['conditions']} == {'galata-rain', 'ayasofya-rain', 'courtyard-rain', 'bosphorus-clouds', 'goztepe-rain'}
 assert sum(s['winter'] for s in scenes) >= 5
 for scene in scenes:
     assert scene['sourceURL'].startswith('https://commons.wikimedia.org/wiki/File:')
@@ -24,4 +27,4 @@ plist = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
 assert plist['LSUIElement'] and plist['LSMinimumSystemVersion'] == '13.0'
 assert not any(key.endswith('UsageDescription') for key in plist)
 assert set(p.name for p in (root / 'Resources/Audio').glob('*.m4a')) == {'rain.m4a', 'snow.m4a', 'mist.m4a'}
-print('Passed: 11 original image hashes/dimensions/licenses, winter library, menu-bar bundle, no privacy prompts, 3 audio beds.')
+print(f'Passed: {len(scenes)} original image hashes/dimensions/licenses, weather matching, winter library, menu-bar bundle, no privacy prompts, 3 audio beds.')
