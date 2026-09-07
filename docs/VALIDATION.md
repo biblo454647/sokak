@@ -56,6 +56,8 @@ For release previews, run `bash scripts/make_previews.sh docs/qa` after the moti
 
 An isolated development app with a separate bundle identifier and an older build number was updated through the native Sparkle interface, using a loopback fixture server. A modified signed feed was rejected; a one-byte-modified ZIP was rejected before extraction. The valid ZIP reached Install and Relaunch, replaced build 4 with build 5, and relaunched automatically. A changed volume preference survived. Checking again reported that 1.3.0 was current. The loopback feed and its HTTP testing exception are confined to ignored QA copies; the shipped feed uses HTTPS.
 
+For 1.4.0, an unchanged official 1.3.1 app in a writable test directory used the public GitHub feed and release asset through the native Updates interface. Download, signature verification, Install and Relaunch completed; build 6 was replaced by build 7 and the app relaunched. Existing volume, intensity, wind, sound and backdrop settings survived. The installed executable matches the released binary, its bundle signature verifies, and a second check reports 1.4.0 as current.
+
 The release script verifies feed and archive signatures using CryptoKit and only the public key. It does not need Keychain access for verification. Update source, key, strict signature requirements, disabled system profiling, and manual installation defaults are recorded in the shipped Info.plist. See [Releasing updates](RELEASING.md).
 
 Start/pause and sound shortcuts have been checked with app-targeted key events. Carbon global registration succeeds without requesting Accessibility access. Physical keyboard dispatch while another app is active still needs device testing. The menu controls remain available if a shortcut conflicts.
