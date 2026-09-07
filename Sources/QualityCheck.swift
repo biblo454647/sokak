@@ -35,6 +35,7 @@ enum QualityCheck {
         let color = NSBitmapImageRep(data: try Data(contentsOf: colorResult))!.colorAt(x: 720, y: 450)!.usingColorSpace(.sRGB)!
         guard color.redComponent > 0.65, color.blueComponent < 0.2, color.greenComponent < 0.2 else { throw CocoaError(.coderInvalidValue) }
         report["photoColorRegression"] = "passed"
+        report["photoVisibilityAndRainIntensity"] = try visibilityRegression(gpu: gpu, output: output)
         var frames: [[String: Any]] = []
         for weather in Weather.allCases {
             let sceneID = weather == .snow ? "bagcilar-evening" : "galata-rain"
@@ -46,6 +47,12 @@ enum QualityCheck {
                 frames.append(["frame": name, "nonzeroAlphaPixels": result.nonzeroAlpha, "meanAlpha": result.meanAlpha])
                 if !desktop && result.nonzeroAlpha != 1440 * 900 { throw CocoaError(.coderInvalidValue) }
                 if desktop && (result.meanAlpha <= 0 || result.meanAlpha > 0.4) { throw CocoaError(.coderInvalidValue) }
+                if weather == .rain && !desktop {
+                    _ = try render(gpu: gpu, weather: .rain, photo: photo, time: 13.7,
+                                   output: output.appendingPathComponent("rain-light.png"), intensity: 0.1)
+                    _ = try render(gpu: gpu, weather: .rain, photo: photo, time: 13.7,
+                                   output: output.appendingPathComponent("rain-heavy.png"), intensity: 1, focus: 1)
+                }
                 if weather != .mist {
                     let dry = try render(gpu: gpu, weather: weather, photo: desktop ? nil : photo, time: 13.7, glass: false)
                     let later = try render(gpu: gpu, weather: weather, photo: desktop ? nil : photo, time: 14.7)
@@ -87,6 +94,8 @@ enum QualityCheck {
     }
 
     struct Frame {
+        let width: Int
+        let height: Int
         let nonzeroAlpha: Int
         let meanAlpha: Double
         let pixels: [UInt8]
@@ -94,6 +103,7 @@ enum QualityCheck {
     }
     static func render(gpu: WeatherGPU, weather: Weather, photo: MTLTexture?, time: Float, output: URL? = nil,
                        width: Int = 1440, height: Int = 900, glass: Bool = true,
+                       intensity: Float = 0.65, focus: Float = 0.65,
                        surface: GlassSimulation? = nil, resources: WeatherFrameResources? = nil) throws -> Frame {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
         descriptor.usage = [.renderTarget, .shaderRead]
@@ -108,10 +118,10 @@ enum QualityCheck {
         let simulation = surface ?? GlassSimulation(seed: 741)
         if surface == nil && glass {
             for _ in 0..<Int(time * 60) {
-                simulation.update(deltaTime: 1 / 60, size: size, weather: weather, intensity: 0.65, wind: 0.25, gentle: false)
+                simulation.update(deltaTime: 1 / 60, size: size, weather: weather, intensity: intensity, wind: 0.25, gentle: false)
             }
         }
-        let u = WeatherUniforms(size: size, time: time, weather: weather.index, intensity: 0.65, wind: 0.25, dimming: photo == nil ? 0 : 0.12, hasPhoto: photo == nil ? 0 : 1, photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: 0, glass: glass ? 1 : 0)
+        let u = WeatherUniforms(size: size, time: time, weather: weather.index, intensity: intensity, wind: 0.25, dimming: photo == nil ? 0 : 0.12, hasPhoto: photo == nil ? 0 : 1, photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: 0, glass: glass ? 1 : 0, focus: focus)
         try gpu.encode(command: command, pass: pass, resources: resources ?? WeatherFrameResources(), uniforms: u,
                        photo: photo, sprites: glass ? simulation.sprites : [])
         if target.storageMode == .managed {
@@ -131,12 +141,80 @@ enum QualityCheck {
             guard let data = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
             try data.write(to: output)
         }
-        return Frame(nonzeroAlpha: count, meanAlpha: Double(sum) / Double(width * height * 255), pixels: pixels,
+        return Frame(width: width, height: height, nonzeroAlpha: count, meanAlpha: Double(sum) / Double(width * height * 255), pixels: pixels,
                      gpuMilliseconds: max(0, command.gpuEndTime - command.gpuStartTime) * 1000)
     }
 
     private static func difference(_ a: [UInt8], _ b: [UInt8]) -> Double {
         zip(a, b).reduce(0.0) { $0 + Double(abs(Int($1.0) - Int($1.1))) } / Double(a.count)
+    }
+
+    private static func visibilityRegression(gpu: WeatherGPU, output: URL) throws -> [String: Any] {
+        // Primary colours expose channel swaps; small checker tiles expose excess
+        // blur even when opacity and a large solid-colour sample both look correct.
+        let chart = NSImage(size: NSSize(width: 1440, height: 900))
+        chart.lockFocus()
+        for (i, color) in [NSColor.red, .green, .blue].enumerated() {
+            color.setFill(); NSRect(x: i * 480, y: 450, width: 480, height: 450).fill()
+        }
+        for y in 0..<19 {
+            for x in 0..<60 {
+                NSColor(white: (x + y) % 2 == 0 ? 0.2 : 0.8, alpha: 1).setFill()
+                NSRect(x: x * 24, y: y * 24, width: 24, height: min(24, 450 - y * 24)).fill()
+            }
+        }
+        chart.unlockFocus()
+        let bitmap = NSBitmapImageRep(data: chart.tiffRepresentation!)!
+        func sample(_ frame: Frame, x: Int, y: Int, channel: Int) -> Double {
+            let px = x * frame.width / 1440, py = y * frame.height / 900
+            var sum = 0
+            for dy in -3...3 { for dx in -3...3 { sum += Int(frame.pixels[((py + dy) * frame.width + px + dx) * 4 + channel]) } }
+            return Double(sum) / 49
+        }
+        func contrast(_ frame: Frame) -> Double {
+            (0..<8).map { i in
+                abs(sample(frame, x: 12 + i * 48, y: 606, channel: 1) - sample(frame, x: 36 + i * 48, y: 606, channel: 1))
+            }.reduce(0, +) / 8
+        }
+        let emptyGlass = GlassSimulation(seed: 1)
+        var checks: [[String: Any]] = []
+        for format: NSBitmapImageRep.FileType in [.png, .jpeg] {
+            let name = format == .png ? "png" : "jpeg"
+            let url = output.appendingPathComponent("detail-reference." + name)
+            try bitmap.representation(using: format, properties: [.compressionFactor: 0.95])!.write(to: url)
+            let texture = try gpu.loadPhoto(url)
+            let clear = try render(gpu: gpu, weather: .rain, photo: texture, time: 13.7, glass: false, intensity: 1)
+            for focus: Float in [0.65, 1] {
+                let frame = try render(gpu: gpu, weather: .rain, photo: texture, time: 13.7,
+                                       output: output.appendingPathComponent("detail-\(name)-\(focus).png"),
+                                       intensity: 1, focus: focus, surface: emptyGlass)
+                let retained = contrast(frame) / contrast(clear)
+                guard retained > 0.75 else {
+                    throw NSError(domain: "Sokak.QA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Photo detail lost at focus \(focus): retained \(retained)"])
+                }
+                for (x, channel) in [(240, 2), (720, 1), (1200, 0)] {
+                    guard sample(frame, x: x, y: 200, channel: channel) > 180,
+                          (0..<3).filter({ $0 != channel }).allSatisfy({ sample(frame, x: x, y: 200, channel: $0) < 25 }) else {
+                        throw NSError(domain: "Sokak.QA", code: 3, userInfo: [NSLocalizedDescriptionKey: "Photo colour channels changed in \(name) at focus \(focus)"])
+                    }
+                }
+                checks.append(["format": name, "focus": focus, "retainedDetailContrast": retained])
+            }
+            if format == .jpeg {
+                let retina = try render(gpu: gpu, weather: .snow, photo: texture, time: 13.7,
+                                        width: 2880, height: 1800, intensity: 1, focus: 1, surface: emptyGlass)
+                guard retina.nonzeroAlpha == 2880 * 1800, contrast(retina) / contrast(clear) > 0.75,
+                      sample(retina, x: 240, y: 200, channel: 2) > 180,
+                      sample(retina, x: 240, y: 200, channel: 0) < 25 else { throw CocoaError(.coderInvalidValue) }
+            }
+        }
+        let low = try render(gpu: gpu, weather: .rain, photo: nil, time: 13.7, glass: false, intensity: 0.1)
+        let high = try render(gpu: gpu, weather: .rain, photo: nil, time: 13.7, glass: false, intensity: 1)
+        let ratio = high.meanAlpha / low.meanAlpha
+        guard ratio > 6, high.meanAlpha > 0.001 else {
+            throw NSError(domain: "Sokak.QA", code: 4, userInfo: [NSLocalizedDescriptionKey: "Rain intensity remains too faint: high alpha \(high.meanAlpha), high/low \(ratio)"])
+        }
+        return ["detail": checks, "retinaPhoto": "passed", "rainHighLowVisibilityRatio": ratio, "rainMaximumMeanAlpha": high.meanAlpha]
     }
 
     private static func motionPreviews(gpu: WeatherGPU, model: AppModel, output: URL) throws {

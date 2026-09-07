@@ -35,6 +35,20 @@ import Foundation
         let another = GlassSimulation(seed: 17)
         for _ in 0..<600 { step(another, 1 / 60) }
         precondition(sixty.drops.first?.position != another.drops.first?.position, "Sessions must not replay the same glass pattern")
+        let rising = GlassSimulation(seed: 71), light = GlassSimulation(seed: 71)
+        for _ in 0..<120 { step(rising, 1 / 60, intensity: 0.1); step(light, 1 / 60, intensity: 0.1) }
+        let originalCount = rising.drops.count, originalSeed = rising.drops[0].seed, originalElapsed = rising.elapsed
+        step(rising, 1 / 60, intensity: 1)
+        precondition(rising.drops.count < originalCount + 10 && rising.drops[0].seed == originalSeed && rising.elapsed > originalElapsed,
+                     "Changing intensity must keep the live glass field instead of resetting it")
+        for _ in 0..<600 { step(rising, 1 / 60, intensity: 1); step(light, 1 / 60, intensity: 0.1) }
+        let visibleHeavy = rising.drops.filter { $0.radius > 3 }.count
+        let visibleLight = light.drops.filter { $0.radius > 3 }.count
+        precondition(rising.drops.count > light.drops.count * 2 && visibleHeavy > visibleLight * 2,
+                     "Increasing intensity during playback must add visibly sized beads within ten seconds")
+        let wetCount = rising.drops.count
+        step(rising, 1 / 60, intensity: 0.1)
+        precondition(rising.drops.count > wetCount * 9 / 10, "Turning rain down must not abruptly erase wet glass")
         let before = sixty.elapsed
         step(sixty, .nan); step(sixty, -2)
         precondition(sixty.elapsed == before)
@@ -48,6 +62,6 @@ import Foundation
         step(sixty, 1 / 60, weather: .mist)
         precondition(sixty.drops.isEmpty && sixty.sprites.isEmpty)
         precondition(MemoryLayout<GlassSprite>.stride == 48)
-        print("Passed: droplet mass conservation, gravity/runoff, trails, irregular impacts, 30/60 fps equivalence, bounded state, pause recovery and weather changes.")
+        print("Passed: droplet mass conservation, gravity/runoff, trails, irregular impacts, live intensity transitions, 30/60 fps equivalence, bounded state, pause recovery and weather changes.")
     }
 }

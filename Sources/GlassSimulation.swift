@@ -50,6 +50,8 @@ final class GlassSimulation {
     private var shower: Float = 0.6
     private var showerTarget: Float = 0.6
     private var untilShower: Float = 0
+    private var lastIntensity: Float = 0
+    private var pendingImpacts: Float = 0
     private var initialized = false
 
     init(seed: UInt64 = UInt64.random(in: 1...UInt64.max)) { state = seed }
@@ -64,13 +66,14 @@ final class GlassSimulation {
         drops.removeAll(keepingCapacity: true); trails.removeAll(keepingCapacity: true)
         elapsed = 0; remainder = 0; untilImpact = 0.8; untilMerge = 0; impacts = 0; merges = 0
         shower = 0.6; showerTarget = 0.6; untilShower = 3
+        lastIntensity = intensity; pendingImpacts = 0
         initialized = true
         guard populate, weather != .mist else { return }
         let area = min(2.4, max(0.35, size.x * size.y / 1_296_000))
-        let count = min(Self.maxDrops, Int((weather == .rain ? 530 + intensity * 410 : 8 + intensity * 12) * area))
+        let count = min(Self.maxDrops, Int(weather == .rain ? rainPopulation(intensity) : (8 + intensity * 12) * area))
         for _ in 0..<count {
             let p = SIMD2(random() * size.x, random() * size.y)
-            addImpact(at: p, radius: weather == .rain ? beadRadius() : 2.5 + random() * 3.5)
+            addImpact(at: p, radius: weather == .rain ? beadRadius(intensity) : 2.5 + random() * 3.5)
             drops[drops.count - 1].age = weather == .rain ? 2 + random() * 80 : 1 + random() * 4
         }
         impacts = 0
@@ -85,9 +88,15 @@ final class GlassSimulation {
         impacts += 1
     }
 
-    private func beadRadius() -> Float {
-        // Many tiny pinned beads, fewer medium lenses, very occasional heavy drops.
-        random() < 0.65 ? 0.65 + pow(random(), 1.8) * 2.1 : 1.8 + pow(random(), 2.4) * 9.3
+    private func rainPopulation(_ intensity: Float) -> Float {
+        let area = min(2.4, max(0.35, size.x * size.y / 1_296_000))
+        return min(Float(Self.maxDrops), (220 + 1050 * pow(intensity, 1.1)) * area)
+    }
+
+    private func beadRadius(_ intensity: Float) -> Float {
+        // Keep fine beads, but give medium lenses enough area to read at screen size.
+        let radius = random() < 0.45 ? 0.9 + pow(random(), 1.4) * 2.3 : 2.2 + pow(random(), 1.8) * 8.2
+        return radius * (0.85 + intensity * 0.30)
     }
 
     func update(deltaTime: Float, size: SIMD2<Float>, weather: Weather, intensity: Float, wind: Float, gentle: Bool) {
@@ -96,6 +105,12 @@ final class GlassSimulation {
             reset(size: size, weather: weather, intensity: intensity)
         }
         guard deltaTime.isFinite, deltaTime > 0 else { return }
+        if weather == .rain && intensity != lastIntensity {
+            // Add water over several seconds, preserving every existing bead and
+            // its motion. Turning rain down reduces arrivals; wet glass dries slowly.
+            pendingImpacts = max(0, pendingImpacts + rainPopulation(intensity) - rainPopulation(lastIntensity))
+            lastIntensity = intensity
+        }
         // A delayed frame never becomes an explosive catch-up after sleep or a resize.
         remainder += min(deltaTime, 0.1)
         let step: Float = 1 / 120
@@ -115,11 +130,13 @@ final class GlassSimulation {
             untilShower = 6 + random() * 17
         }
         shower += (showerTarget - shower) * min(1, dt * 0.22)
+        let extraRate = pendingImpacts / 4
+        pendingImpacts = max(0, pendingImpacts - extraRate * dt)
         untilImpact -= dt
-        if untilImpact <= 0 {
-            let rate = (weather == .rain ? (1.6 + intensity * 4.3) * (0.35 + shower) : 0.7 + intensity * 2.0) * area
-            untilImpact += max(0.025, -log(max(0.001, random())) / rate)
-            let radius = weather == .rain ? beadRadius() : 3.0 + random() * 4.0
+        while untilImpact <= 0 {
+            let rate = (weather == .rain ? (1.4 + intensity * 6) * (0.35 + shower) : 0.7 + intensity * 2.0) * area + extraRate
+            untilImpact += max(0.003, -log(max(0.001, random())) / rate)
+            let radius = weather == .rain ? beadRadius(intensity) : 3.0 + random() * 4.0
             addImpact(at: SIMD2(random() * size.x, random() * (size.y + 40) - 20), radius: radius)
         }
         for i in trails.indices { trails[i].age += dt }
@@ -198,7 +215,7 @@ final class GlassSimulation {
         }
         for drop in drops {
             let fade = min(1, max(0, (drop.life - drop.age) / (drop.snow ? 3 : 18)))
-            let arrival = min(1, drop.age / 0.28)
+            let arrival = min(1, drop.age / (drop.snow ? 0.28 : 0.7))
             let stretch = min(0.32, drop.velocity / 65)
             let radius = drop.radius * (0.7 + 0.3 * arrival) * sqrt(fade)
             let extent = SIMD2(radius * (0.95 + drop.seed * 0.07), radius * (1 + stretch))

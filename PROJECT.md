@@ -1,7 +1,7 @@
 # Sokak
 
 - Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and an Istanbul photograph library.
-- Current release: 1.3.0. Calm pinned water beads, occasional slow runoff, optical refraction and adjustable photograph focus; irregular outdoor rain; 15 photographs with weather-aware matching; signed GitHub updates through Sparkle.
+- Current release: 1.3.1. Fixes excessive photograph blur and faint rain. Bounded photo softness preserves street detail and colour; falling rain renders separately and grows in width, contrast and density with intensity. Glass beads respond during playback without resetting the pane. Calm movement, 15 weather-matched photographs, and signed GitHub updates through Sparkle remain available.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak

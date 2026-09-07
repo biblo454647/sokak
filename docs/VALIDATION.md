@@ -29,10 +29,13 @@ The self-test requires a macOS graphics session and Metal. Generated frames and 
 - Core tests cover timer expiry and cancellation, rounding, no-timer sessions, corrupted preferences, nonfinite and out-of-range settings, persistence, display and timer validation, and weather-aware matching. Sunny rain selections migrate to Galata; suitable explicit choices remain selected.
 - Migration checks preserve existing preferences, supply defaults for the glass and focus controls, and preserve an explicitly disabled glass setting.
 - Surface-water tests cover volume conservation, small merged beads remaining pinned, slow heavy-drop runoff, wet trails, irregular impacts, equivalent 30/60 fps stepping, distinct session patterns, bounded memory, suspended-frame recovery and weather changes. More than 90% of beads remain pinned in the tested calm scene; runoff is capped at 24 logical points per second.
+- Live intensity tests raise an existing light-rain session to heavy rain. The same beads and elapsed time survive the change; the count of clearly sized beads more than doubles within ten seconds. Lowering intensity leaves existing water in place instead of resetting the pane.
 - Integration checks exercise published-settings recovery and exclude personal imports from the bundled test library.
 - The actual Metal pipelines render rain, snow, and mist into opaque photograph frames and transparent desktop frames. Alpha-channel checks distinguish the two modes.
 - Glass-on versus glass-off renders verify visible pane contact, while frames a second apart verify temporal change. The motion-preview option exports 300 consecutive frames each for rain and snow through the same renderer and simulation used by the app.
 - A red reference photograph passes through the image pipeline to check color-channel preservation after explicit RGBA normalization.
+- PNG and JPEG primary-colour/detail charts pass through the rain renderer at default and maximum softness. The 24-point detail pattern retains over 75% of its contrast; red, green and blue channels remain separate. A 2880 × 1800 snow render checks opacity, colour and detail at Retina scale.
+- The falling-rain layer is tested independently of glass beads. Maximum intensity must have measurable coverage and more than six times the mean opacity of 10% intensity. This checks width and contrast as well as particle count. App-owned light and heavy rain frames are exported for visual comparison.
 - Native SwiftUI menu and library snapshots are rendered for visual inspection.
 
 Photograph upload and test readback textures use Metal's hardware-appropriate default storage mode. Managed textures are synchronized before CPU readback in the test renderer. The reusable exterior render target uses GPU-private storage with render-target and shader-read usage. The pane samples that app-owned target in a second render pass. See [Apple's storage-mode documentation](https://developer.apple.com/documentation/metal/setting-resource-storage-modes).
@@ -41,7 +44,7 @@ Photograph upload and test readback textures use Metal's hardware-appropriate de
 
 The app has been exercised through its native interface for weather selection, desktop and photograph modes, seasonal snow matching, winter filtering, photograph selection, sound on/off, low-power mode, timer selection, starting and pausing, and Escape from an immersive session.
 
-Window glass, rain and snow immersive sessions, and Escape back to a paused menu have been exercised. Version 1.3 adds app-owned frame and consecutive-frame inspection for the focused beads, blurred background and calmer motion. This is visual QA, not a claim that the effect reproduces every physical property of water or snow.
+Window glass, rain and snow immersive sessions, and Escape back to a paused menu have been exercised. Version 1.3.1 corrects excessive background blur and faint rain, with app-owned frame and consecutive-frame inspection for recognizable streets, visible rainfall and calm glass motion. This is visual QA, not a claim that the effect reproduces every physical property of water or snow.
 
 ## Updater validation
 

@@ -69,8 +69,8 @@ struct MenuView: View {
                     slider("Intensity", symbol: "drop", value: $model.preferences.intensity, ending: model.preferences.intensity < 0.33 ? "Light" : model.preferences.intensity < 0.7 ? "Steady" : "Heavy")
                     slider("Wind", symbol: "wind", value: $model.preferences.wind, ending: model.preferences.wind < 0.33 ? "Calm" : model.preferences.wind < 0.7 ? "Breezy" : "Gusty")
                     if model.preferences.windowGlass && model.preferences.backdrop == .istanbul {
-                        slider("Focus", symbol: "camera.aperture", value: $model.preferences.glassFocus, ending: model.preferences.glassFocus < 0.3 ? "Street" : model.preferences.glassFocus < 0.75 ? "Glass" : "Soft")
-                            .help("Keep the glass sharp and soften the street behind it.")
+                        slider("Softness", symbol: "camera.aperture", value: $model.preferences.glassFocus, ending: model.preferences.glassFocus < 0.3 ? "Clear" : model.preferences.glassFocus < 0.75 ? "Gentle" : "Soft")
+                            .help("Add a little softness to the photograph. Rain and glass droplets stay visible; slide fully left for a clear street.")
                     }
                 }
                 Divider().overlay(Color.white.opacity(0.05))

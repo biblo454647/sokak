@@ -51,9 +51,9 @@ fragment float4 backgroundFragment(VertexOut in [[stage_in]], constant Uniforms 
     }
     float drift=u.time*(.018+u.wind*.055);
     float fog=noise(uv*float2(3.2,2.0)+float2(drift,-drift*.2))*.65 + noise(uv*7.0-float2(drift*.6,0))*.35;
-    float mist = u.weather>1.5 ? (.05+.26*u.intensity)*smoothstep(.2,.9,fog) : .014*u.intensity*fog;
+    float mist = u.weather>1.5 ? (.05+.26*u.intensity)*smoothstep(.2,.9,fog) : 0.0;
     mist *= .5+.5*smoothstep(.25,1.0,uv.y);
-    float3 tint=u.weather>.5 ? float3(.74,.81,.85) : float3(.53,.65,.71);
+    float3 tint=float3(.74,.81,.85);
     color.rgb=color.rgb*(1-mist)+tint*mist;
     color.a=color.a+(1-color.a)*mist;
     return color;
@@ -80,7 +80,9 @@ vertex VertexOut particleVertex(uint vid [[vertex_id]], uint iid [[instance_id]]
         float slope=(hash(birth+12)-.5)*.045+u.wind*(.08+gust*.13);
         p.y=phase*(u.size.y+160)-80;
         p.x=hash(birth+44)*(u.size.x+320)-160+phase*u.size.y*slope;
-        extent=float2(mix(.55,1.25,depth),mix(1.8,5.5,depth)*(.7+r3*.5));
+        // Density, width and contrast all respond to intensity; speed stays calm.
+        extent=float2(mix(.95,2.3,depth)*mix(.8,1.25,u.intensity),
+                      mix(3.2,10.5,depth)*(.7+r3*.5)*mix(.9,1.15,u.intensity));
         p += float2(c.x*extent.x+c.y*extent.y*slope,c.y*extent.y);
     } else {
         float speed=mix(13.0,122.0,depth)*(0.65+r3*.6);
@@ -101,10 +103,10 @@ fragment float4 particleFragment(VertexOut in [[stage_in]], constant Uniforms &u
     float alpha;
     float3 tint;
     if (u.weather<.5) {
-        float soft=exp(-dot(in.uv*float2(1.7,1.3),in.uv*float2(1.7,1.3)));
+        float soft=exp(-dot(in.uv*float2(1.45,1.1),in.uv*float2(1.45,1.1)));
         soft*=1-smoothstep(.7,1.0,max(abs(in.uv.x),abs(in.uv.y)));
-        alpha=soft*mix(.045,.17,in.depth)*(.55+in.seed*.45);
-        tint=float3(.79,.83,.84);
+        alpha=soft*mix(.10,.40,in.depth)*(.7+in.seed*.3)*mix(.65,1.2,u.intensity);
+        tint=float3(.84,.86,.87);
     } else {
         float d=length(in.uv);
         float near=smoothstep(.84,1.0,in.depth);
@@ -124,10 +126,10 @@ fragment float4 paneFragment(VertexOut in [[stage_in]], constant Uniforms &u [[b
     if (u.glass < .5) return color;
     float edge=min(min(uv.x,1-uv.x),min(uv.y,1-uv.y));
     float grain=noise(uv*u.size/17.0)*.65+noise(uv*u.size/4.0)*.35;
-    float cold=u.weather>.5 && u.weather<1.5 ? 1.0 : .13;
+    float cold=u.weather>.5 && u.weather<1.5 ? 1.0 : 0.0;
     float corners=1-smoothstep(.0,.12+grain*.05,edge);
     float frost=corners*cold*(.075+.17*u.intensity)*(.55+grain*.45);
-    // The photograph is optically defocused in a cached MPS Gaussian pass.
+    // A bounded soft focus keeps photograph details and original colours visible.
     // Droplets below still sample the sharp exterior, like little convex lenses.
     float3 ice=float3(.77,.85,.89);
     color=float4(color.rgb*(1-frost)+ice*frost,color.a+(1-color.a)*frost);

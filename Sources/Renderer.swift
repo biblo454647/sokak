@@ -124,18 +124,23 @@ final class WeatherGPU {
         return texture
     }
 
-    private func encodeExterior(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms, photo: MTLTexture?) {
+    private func encodeBackground(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms, photo: MTLTexture?) {
         var u = input
         encoder.setRenderPipelineState(background)
         encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
         encoder.setFragmentTexture(photo ?? placeholder, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+    }
+
+    private func encodePrecipitation(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms) {
+        var u = input
         if u.weather < 1.5 {
             encoder.setRenderPipelineState(particles)
             encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
-            let density = Float(u.weather < 0.5 ? 360 : 760)
+            encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
             let area = min(2.8, max(0.35, (u.size.x * u.size.y) / (1440 * 900)))
-            let count = Int((70 + density * u.intensity) * area * (u.gentle > 0.5 ? 0.65 : 1))
+            let density = u.weather < 0.5 ? 60 + 1000 * pow(u.intensity, 1.15) : 70 + 760 * u.intensity
+            let count = Int(density * area * (u.gentle > 0.5 ? 0.65 : 1))
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: count)
         }
     }
@@ -144,7 +149,8 @@ final class WeatherGPU {
                 uniforms input: WeatherUniforms, photo: MTLTexture?, sprites: [GlassSprite]) throws {
         guard input.glass > 0.5 else {
             guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
-            encodeExterior(encoder, uniforms: input, photo: photo)
+            encodeBackground(encoder, uniforms: input, photo: photo)
+            encodePrecipitation(encoder, uniforms: input)
             encoder.endEncoding()
             return
         }
@@ -156,7 +162,7 @@ final class WeatherGPU {
         exterior.colorAttachments[0].storeAction = .store
         exterior.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
         guard let outside = command.makeRenderCommandEncoder(descriptor: exterior) else { throw CocoaError(.coderInvalidValue) }
-        encodeExterior(outside, uniforms: input, photo: photo)
+        encodeBackground(outside, uniforms: input, photo: photo)
         outside.endEncoding()
         guard let blit = command.makeBlitCommandEncoder() else { throw CocoaError(.coderInvalidValue) }
         blit.generateMipmaps(for: scene)
@@ -164,7 +170,9 @@ final class WeatherGPU {
 
         let defocused: MTLTexture
         if input.hasPhoto > 0.5 && input.focus > 0.001 {
-            let sigma = (1 + input.focus * input.focus * 28) * Float(target.width) / input.size.x
+            // Keep the street readable even with a previously saved focus of 1.
+            // Softness is measured in logical points, including on Retina displays.
+            let sigma = max(0.05, input.focus * input.focus * 2.4 * Float(target.width) / input.size.x)
             defocused = try resources.blurredScene(device: device, command: command, source: scene, sigma: sigma)
         } else { defocused = scene }
 
@@ -174,6 +182,8 @@ final class WeatherGPU {
         encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
         encoder.setFragmentTexture(defocused, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        // Precipitation must not pass through the photo blur: it erased fine rain.
+        encodePrecipitation(encoder, uniforms: input)
         if !sprites.isEmpty {
             // Immutable per-submission data cannot be overwritten by a later CPU frame.
             // Shared *buffers* are supported on Intel as well as Apple GPUs.
