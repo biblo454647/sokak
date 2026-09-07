@@ -103,6 +103,7 @@ struct MenuView: View {
                 }
                 DisclosureGroup {
                     VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Window glass · droplets & winter frost", isOn: $model.preferences.windowGlass)
                         Toggle("Low power · 30 fps", isOn: $model.preferences.economical)
                         Toggle("Match photos to the season", isOn: $model.preferences.matchSeason)
                         slider("Dimming", symbol: "moon", value: $model.preferences.dimming, ending: "\(Int(model.preferences.dimming * 100))%", range: 0...0.65)

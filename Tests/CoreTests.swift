@@ -24,6 +24,13 @@ import Foundation
         preferences.volume = 0.7; preferences.weather = .snow
         let encoded = try JSONEncoder().encode(preferences)
         precondition(Preferences.decode(encoded) == preferences)
+        var legacy = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
+        legacy.removeValue(forKey: "windowGlass")
+        let migrated = Preferences.decode(try JSONSerialization.data(withJSONObject: legacy))
+        precondition(migrated == preferences && migrated.windowGlass)
+        preferences.windowGlass = false
+        let glassDisabled = try JSONEncoder().encode(preferences)
+        precondition(!Preferences.decode(glassDisabled).windowGlass)
 
         let data = try Data(contentsOf: URL(fileURLWithPath: "Resources/scenes.json"))
         let scenes = try JSONDecoder().decode([StreetScene].self, from: data)

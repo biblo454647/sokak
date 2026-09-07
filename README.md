@@ -2,17 +2,21 @@
 
 A little weather. A little home.
 
-Sokak is a native macOS menu bar app for a quiet Istanbul escape: layered rain, drifting snow, slow mist, and soft stereo ambience. Keep working through a transparent overlay, or sit with a real Istanbul street photograph.
+Sokak is a native macOS menu bar app for watching Istanbul weather from behind a window: rain beads hit the glass, join together, and run down it; snow drifts at different depths outside a softly frosted pane. Keep working through a transparent overlay, or sit with a real Istanbul street photograph and soft stereo ambience.
 
-![Sokak snowfall over a real Bağcılar winter photograph](docs/preview.png)
+![Rain hitting and running down window glass over a Göztepe street](docs/rain-window.gif)
 
-Preview photograph: Maurice Flesier, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), [original source](https://commons.wikimedia.org/wiki/File:A_snowy_evening_in_Ba%C4%9Fc%C4%B1lar,_Istanbul.jpg). Screenshot adaptation with display cropping, dimming, and rendered snowfall; this adapted image is also CC BY-SA 4.0.
+Rain preview: actual renderer output over M. PINARCI's [Göztepe photograph](https://commons.wikimedia.org/wiki/File:Another_Rainy_Day_-_panoramio.jpg). Cropping, dimming, glass refraction and weather added; this adaptation is [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+
+![Snow drifting outside a softly frosted window in Bağcılar](docs/snow-window.gif)
+
+Snow preview: actual renderer output over Maurice Flesier's [Bağcılar photograph](https://commons.wikimedia.org/wiki/File:A_snowy_evening_in_Ba%C4%9Fc%C4%B1lar,_Istanbul.jpg). Cropping, dimming, frost and weather added; this adaptation is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Both previews are silent; the app has optional ambience.
 
 ## Get the app
 
 **[Download Sokak for Mac](https://github.com/biblo454647/sokak/releases/latest)** · **[Browse the source](https://github.com/biblo454647/sokak)** · **[Report an issue](https://github.com/biblo454647/sokak/issues)**
 
-Download **Sokak-1.1.0-universal.zip** from the release page. Unzip it and open **Sokak.app**. You can keep it in `~/Applications`. No installer, administrator helper, Homebrew, or runtime download is needed. Sokak is free and open source.
+Download **Sokak-1.2.0-universal.zip** from the release page. Unzip it and open **Sokak.app**. You can keep it in `~/Applications`. No installer, administrator helper, Homebrew, or runtime download is needed. Sokak is free and open source.
 
 **Compatibility:** macOS 13 Ventura or later, Apple Silicon or Intel, with Metal graphics. The two architectures are included in one app. Runtime testing has covered Apple Silicon; physical Intel and older macOS versions still require validation.
 
@@ -23,6 +27,8 @@ Download **Sokak-1.1.0-universal.zip** from the release page. Unzip it and open 
 - Click the little cloud in the top-right menu bar. Choose **Rain**, **Snow**, or **Mist**, then **Let the weather in**.
 - **Over my windows** leaves the screen interactive. **An Istanbul street** covers the selected display with a photograph and catches mouse clicks; press **Escape** to leave it.
 - Tune intensity, wind, sound, volume, dimming, display selection, and a 15/30/60/120-minute timer.
+- **Window glass** is on by default. Rain beads arrive at irregular intervals, cling, merge, and leave wet trails as they slide. Snow has distant flakes, soft close flakes, occasional contact with the pane, and light frost at the edges. Turn the glass off under **A few little details** for weather alone.
+- Photograph mode bends the street and the falling weather through each water bead. Desktop mode shows droplets, trails, and highlights over your work; it cannot bend other apps' pixels because Sokak never captures the screen.
 - Choose a photograph from the library, filter for winter, or import your own JPEG, PNG, HEIC, or TIFF. Snow automatically chooses a winter image when seasonal matching is on. Manually chosen photographs stay selected until you change weather.
 - **⌃⌥⌘S** toggles the session; **⌃⌥⌘M** toggles sound. Right-clicking the menu-bar cloud also toggles the session. A shortcut conflict is reported in the menu; the menu controls always remain available.
 - **Current display** means the display containing the pointer when the session starts; it stays there until the session is stopped. An explicit display or all displays can also be selected.
@@ -37,7 +43,7 @@ Eleven original photographs are bundled offline, from 2,592 × 1,944 up to 6,016
 
 Photographers, source links, exact resolutions, file hashes, and licenses are recorded in [scenes.json](Resources/scenes.json) and [Photograph Credits](Resources/PHOTO-CREDITS.md). Originals remain unchanged; aspect-fill cropping and weather are applied at display time. CC BY-SA photographs and any distributed adaptations retain their respective licenses.
 
-Audio is original synthesized rain and wind, not location recordings. It uses quiet stereo beds, random rain impacts, seamless-loop preparation, and gradual volume changes. There are no sudden thunderclaps or flashing lightning.
+Audio is original synthesized rain and wind, not location recordings. Rain combines a muted outdoor bed with soft, close taps against glass. It uses quiet stereo beds, seamless-loop preparation, and gradual volume changes. Individual visual impacts are not synchronized to the ambient audio loop. There are no sudden thunderclaps or flashing lightning.
 
 ## Privacy and permissions
 
@@ -53,11 +59,15 @@ Apple Command Line Tools with a recent Swift compiler are sufficient. There are 
 bash scripts/build.sh
 swiftc -swift-version 5 Sources/Core.swift Tests/CoreTests.swift -o .build/core-tests
 .build/core-tests
+swiftc -O -swift-version 5 Sources/Core.swift Sources/GlassSimulation.swift Tests/GlassTests.swift -o .build/glass-tests
+.build/glass-tests
 dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa
 python3 scripts/verify_assets.py
 ```
 
 The build cross-compiles `arm64` and `x86_64`, combines them, creates the app icon, embeds assets and license notices, ad-hoc signs the bundle, verifies its integrity, and produces a ZIP. The self-test renders bundled photographs and transparent frames through the actual Metal pipelines, checks audio decoding, and exports the native menu and library views. It excludes personal imports and never captures the desktop. Generated reports stay in the ignored `docs/qa/` directory.
+
+Append `--motion-preview` to the app self-test command to export ten-second rain and snow MP4s from the actual renderer. Surface-water tests check merging, runoff, trails, pause recovery, bounded particle counts, and equivalent simulation at 30/60 fps. Existing preferences are preserved when upgrading from 1.1.
 
 Photo regeneration uses the Python standard library: `python3 scripts/fetch_scenes.py`. Audio regeneration additionally requires NumPy and FFmpeg: `python3 scripts/make_audio.py`. All assets are already committed, so normal builds need neither dependency nor Internet access.
 

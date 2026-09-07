@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import wave
+import argparse
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,9 +23,14 @@ def bed(slope, cutoff, floor=40):
     return signal / np.std(signal)
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--only', choices=['rain', 'snow', 'mist'])
+    selected = parser.parse_args().only
     destination = ROOT / 'Resources' / 'Audio'
     destination.mkdir(parents=True, exist_ok=True)
-    for name, slope, cutoff, loudness in [('rain', .38, 6500, -25), ('snow', 1.45, 1600, -29), ('mist', 1.7, 1100, -29)]:
+    for name, slope, cutoff, loudness in [('rain', .55, 3900, -25), ('snow', 1.45, 1600, -29), ('mist', 1.7, 1100, -29)]:
+        if selected and name != selected:
+            continue
         common = bed(slope, cutoff)
         channels = []
         for channel in range(2):
@@ -42,6 +48,17 @@ def main():
                     envelope = np.exp(-t * RNG.uniform(65, 190)) * (1 - np.exp(-t * 1600))
                     grain = RNG.normal(size=length) * envelope * RNG.uniform(.08, .55)
                     noise[(start + np.arange(length)) % N] += grain
+                # Muted exterior rain with sparse, close taps against a window pane.
+                # Very short damped modes avoid a tonal loop or startling knocks.
+                for _ in range(135):
+                    start = RNG.integers(N)
+                    t = np.arange(int(SR * .075)) / SR
+                    attack = 1 - np.exp(-t * 2500)
+                    mode = RNG.uniform(900, 2350)
+                    tap = (np.sin(2 * np.pi * mode * t) * np.exp(-t * 115)
+                           + .24 * np.sin(2 * np.pi * mode * 1.73 * t) * np.exp(-t * 190)
+                           + RNG.normal(size=len(t)) * .24 * np.exp(-t * 280))
+                    noise[(start + np.arange(len(t))) % N] += tap * attack * RNG.uniform(.3, 1.1)
             channels.append(noise)
         signal = np.stack(channels, axis=1)
         signal = signal / max(1, np.max(np.abs(signal))) * .7

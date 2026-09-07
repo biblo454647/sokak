@@ -6,7 +6,7 @@ enum Weather: String, Codable, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
     var symbol: String { switch self { case .rain: return "cloud.rain"; case .snow: return "snowflake"; case .mist: return "cloud.fog" } }
     var index: Float { switch self { case .rain: return 0; case .snow: return 1; case .mist: return 2 } }
-    var soundDescription: String { switch self { case .rain: return "Soft rain & scattered droplets"; case .snow: return "Hushed winter wind"; case .mist: return "A slow, low breeze" } }
+    var soundDescription: String { switch self { case .rain: return "Rain outside & soft taps on glass"; case .snow: return "Hushed winter wind"; case .mist: return "A slow, low breeze" } }
 }
 
 enum Backdrop: String, Codable { case desktop, istanbul }
@@ -20,10 +20,32 @@ struct Preferences: Codable, Equatable {
     var sound: Bool = true
     var economical: Bool = false
     var matchSeason: Bool = true
+    var windowGlass: Bool = true
     var dimming: Double = 0.12
     var timerMinutes: Int = 0
     var display: String = "current"
     var sceneID: String = "balat"
+
+    init() {}
+    private enum CodingKeys: String, CodingKey {
+        case weather, backdrop, intensity, wind, volume, sound, economical, matchSeason, windowGlass, dimming, timerMinutes, display, sceneID
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        weather = try c.decodeIfPresent(Weather.self, forKey: .weather) ?? .rain
+        backdrop = try c.decodeIfPresent(Backdrop.self, forKey: .backdrop) ?? .desktop
+        intensity = try c.decodeIfPresent(Double.self, forKey: .intensity) ?? 0.48
+        wind = try c.decodeIfPresent(Double.self, forKey: .wind) ?? 0.25
+        volume = try c.decodeIfPresent(Double.self, forKey: .volume) ?? 0.35
+        sound = try c.decodeIfPresent(Bool.self, forKey: .sound) ?? true
+        economical = try c.decodeIfPresent(Bool.self, forKey: .economical) ?? false
+        matchSeason = try c.decodeIfPresent(Bool.self, forKey: .matchSeason) ?? true
+        windowGlass = try c.decodeIfPresent(Bool.self, forKey: .windowGlass) ?? true
+        dimming = try c.decodeIfPresent(Double.self, forKey: .dimming) ?? 0.12
+        timerMinutes = try c.decodeIfPresent(Int.self, forKey: .timerMinutes) ?? 0
+        display = try c.decodeIfPresent(String.self, forKey: .display) ?? "current"
+        sceneID = try c.decodeIfPresent(String.self, forKey: .sceneID) ?? "balat"
+    }
 
     mutating func sanitize() {
         intensity = Self.unit(intensity, fallback: 0.48)

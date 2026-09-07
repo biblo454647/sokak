@@ -12,7 +12,21 @@ struct WeatherUniforms {
     var hasPhoto: Float
     var photoSize: SIMD2<Float>
     var gentle: Float
-    var padding: Float = 0
+    var glass: Float = 1
+}
+
+final class WeatherFrameResources {
+    private var scene: MTLTexture?
+    func sceneTexture(device: MTLDevice, width: Int, height: Int) throws -> MTLTexture {
+        if let scene, scene.width == width, scene.height == height { return scene }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
+        descriptor.usage = [.renderTarget, .shaderRead]
+        descriptor.storageMode = .private
+        guard let texture = device.makeTexture(descriptor: descriptor) else { throw CocoaError(.fileReadTooLarge) }
+        texture.label = "Sokak exterior behind the glass"
+        scene = texture
+        return texture
+    }
 }
 
 final class WeatherGPU {
@@ -20,6 +34,8 @@ final class WeatherGPU {
     let queue: MTLCommandQueue
     let background: MTLRenderPipelineState
     let particles: MTLRenderPipelineState
+    let pane: MTLRenderPipelineState
+    let glass: MTLRenderPipelineState
     let placeholder: MTLTexture
 
     init() throws {
@@ -44,6 +60,8 @@ final class WeatherGPU {
         }
         background = try pipeline("backgroundVertex", "backgroundFragment")
         particles = try pipeline("particleVertex", "particleFragment")
+        pane = try pipeline("backgroundVertex", "paneFragment")
+        glass = try pipeline("glassVertex", "glassFragment")
         let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 1, height: 1, mipmapped: false)
         guard let placeholder = device.makeTexture(descriptor: d) else { throw CocoaError(.coderInvalidValue) }
         self.placeholder = placeholder
@@ -82,7 +100,7 @@ final class WeatherGPU {
         return texture
     }
 
-    func encode(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms, photo: MTLTexture?) {
+    private func encodeExterior(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms, photo: MTLTexture?) {
         var u = input
         encoder.setRenderPipelineState(background)
         encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
@@ -91,11 +109,51 @@ final class WeatherGPU {
         if u.weather < 1.5 {
             encoder.setRenderPipelineState(particles)
             encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
-            let density = Float(u.weather < 0.5 ? 1450 : 620)
+            let density = Float(u.weather < 0.5 ? 1350 : 760)
             let area = min(2.8, max(0.35, (u.size.x * u.size.y) / (1440 * 900)))
             let count = Int((70 + density * u.intensity) * area * (u.gentle > 0.5 ? 0.65 : 1))
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: count)
         }
+    }
+
+    func encode(command: MTLCommandBuffer, pass: MTLRenderPassDescriptor, resources: WeatherFrameResources,
+                uniforms input: WeatherUniforms, photo: MTLTexture?, sprites: [GlassSprite]) throws {
+        guard input.glass > 0.5 else {
+            guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
+            encodeExterior(encoder, uniforms: input, photo: photo)
+            encoder.endEncoding()
+            return
+        }
+        guard let target = pass.colorAttachments[0].texture else { throw CocoaError(.coderInvalidValue) }
+        let scene = try resources.sceneTexture(device: device, width: target.width, height: target.height)
+        let exterior = MTLRenderPassDescriptor()
+        exterior.colorAttachments[0].texture = scene
+        exterior.colorAttachments[0].loadAction = .clear
+        exterior.colorAttachments[0].storeAction = .store
+        exterior.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
+        guard let outside = command.makeRenderCommandEncoder(descriptor: exterior) else { throw CocoaError(.coderInvalidValue) }
+        encodeExterior(outside, uniforms: input, photo: photo)
+        outside.endEncoding()
+
+        guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
+        var u = input
+        encoder.setRenderPipelineState(pane)
+        encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
+        encoder.setFragmentTexture(scene, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        if !sprites.isEmpty {
+            // Immutable per-submission data cannot be overwritten by a later CPU frame.
+            // Shared *buffers* are supported on Intel as well as Apple GPUs.
+            let buffer = sprites.withUnsafeBytes { gpuBytes in
+                device.makeBuffer(bytes: gpuBytes.baseAddress!, length: gpuBytes.count, options: .storageModeShared)
+            }
+            guard let buffer else { encoder.endEncoding(); throw CocoaError(.fileReadTooLarge) }
+            encoder.setRenderPipelineState(glass)
+            encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
+            encoder.setVertexBuffer(buffer, offset: 0, index: 1)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: sprites.count)
+        }
+        encoder.endEncoding()
     }
 }
 
@@ -105,6 +163,9 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private var photo: MTLTexture?
     private var photoURL: URL?
     private let start = CACurrentMediaTime()
+    private var lastFrame: CFTimeInterval?
+    private let surface = GlassSimulation()
+    private let resources = WeatherFrameResources()
     private let gentle = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var onError: ((String) -> Void)?
     private var hasReportedError = false
@@ -125,14 +186,30 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     func draw(in view: MTKView) {
         guard !view.isPaused, view.bounds.width > 0, view.bounds.height > 0,
               let drawable = view.currentDrawable, let pass = view.currentRenderPassDescriptor,
-              let command = gpu.queue.makeCommandBuffer(), let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { return }
+              let command = gpu.queue.makeCommandBuffer() else { return }
+        let now = CACurrentMediaTime()
+        let size = SIMD2(Float(view.bounds.width), Float(view.bounds.height))
+        if preferences.windowGlass {
+            surface.update(deltaTime: Float(lastFrame.map { now - $0 } ?? 0), size: size, weather: preferences.weather,
+                           intensity: Float(preferences.intensity), wind: Float(preferences.wind), gentle: gentle)
+        }
+        lastFrame = now
         let u = WeatherUniforms(size: SIMD2(Float(view.bounds.width), Float(view.bounds.height)),
                                 time: Float(CACurrentMediaTime() - start), weather: preferences.weather.index,
                                 intensity: Float(preferences.intensity), wind: Float(preferences.wind),
                                 dimming: Float(preferences.dimming), hasPhoto: photo == nil ? 0 : 1,
-                                photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: gentle ? 1 : 0)
-        gpu.encode(encoder, uniforms: u, photo: photo)
-        encoder.endEncoding()
+                                photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: gentle ? 1 : 0,
+                                glass: preferences.windowGlass ? 1 : 0)
+        do {
+            try gpu.encode(command: command, pass: pass, resources: resources, uniforms: u, photo: photo,
+                           sprites: preferences.windowGlass ? surface.sprites : [])
+        } catch {
+            if !hasReportedError {
+                hasReportedError = true
+                DispatchQueue.main.async { [weak self] in self?.onError?("The glass effect could not be drawn. Try Low power or turn off Window glass.") }
+            }
+            return
+        }
         command.present(drawable)
         command.addCompletedHandler { [weak self] command in
             guard command.status == .error else { return }

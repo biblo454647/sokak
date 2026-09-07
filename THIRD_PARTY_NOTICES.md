@@ -10,6 +10,10 @@ See [Photograph Credits](https://github.com/biblo454647/sokak/blob/main/Resource
 
 The repository's `docs/preview.png` adapts Maurice Flesier's [A snowy evening in Bağcılar, Istanbul](https://commons.wikimedia.org/wiki/File:A_snowy_evening_in_Ba%C4%9Fc%C4%B1lar,_Istanbul.jpg) with display cropping, dimming, and rendered snowfall. The preview is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
+The motion previews in `docs/rain-window.gif` and the release's `rain-window.mp4` adapt M. PINARCI's [Another Rainy Day](https://commons.wikimedia.org/wiki/File:Another_Rainy_Day_-_panoramio.jpg) with cropping, dimming, glass refraction, droplets and animated rain. These adaptations are [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+
+The motion previews in `docs/snow-window.gif` and the release's `snow-window.mp4` adapt Maurice Flesier's Bağcılar photograph linked above with cropping, dimming, frost and animated snow. These adaptations are [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Preview videos are silent renderer exports; the original source photographs remain unchanged in the app.
+
 ## Platform components
 
 Sokak uses Apple system frameworks supplied with macOS. Those frameworks remain subject to Apple's applicable licenses; no third-party runtime or framework is distributed in the app.
