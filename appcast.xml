@@ -1,0 +1,30 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Sokak</title>
+        <item>
+            <title>1.3.0</title>
+            <pubDate>Mon, 07 Sep 2026 10:23:52 +0100</pubDate>
+            <link>https://github.com/biblo454647/sokak/releases/latest</link>
+            <sparkle:version>5</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A slower rain, a window of your own</h2>
+<ul>
+<li>Hundreds of small beads cling to the glass. Occasional heavy drops merge and glide down slowly.</li>
+<li>Focused glass, inverted reflections, dark upper edges and fine lower highlights. Use Focus to soften the street behind it.</li>
+<li>Subtle rain outside the window changes its placement and depth on every descent.</li>
+<li>Four new Istanbul photographs: a rainy night at Galata Bridge, Ayasofya in rain, a quiet wet courtyard, and a grey day on the Bosphorus.</li>
+<li>Weather matching now excludes sunny photographs from rain and keeps snowy photographs for snow.</li>
+<li>Check for Updates from the menu bar, download the signed GitHub release, and install and relaunch inside Sokak. Optional automatic checks; installation stays your choice.</li>
+</ul>
+<p>macOS 13 or later. Settings and personal photographs are preserved. This community build is ad-hoc signed and is not Apple-notarized; your Mac's normal installation policy still applies.</p>
+]]></description>
+            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.3.0/Sokak-1.3.0-universal.zip" length="65408097" type="application/octet-stream" sparkle:edSignature="0mZMMDP6Ux8RRoG+njSetfxQsH148znxgMp6qaRmRtvA+xgTSRz2AxoTexH4KVd28cH5K54ilNWYkkCnsN1nDw=="></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: UzY3ycKWOT+A/Tmyf+UdK7gI6PspnEFbYSMok3rmEb9u1Z8zuhAuRHe0key0ylw6Qd+dP1YhIdJJMeAsaMerAA==
+length: 2184
+-->
