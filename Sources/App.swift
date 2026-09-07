@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return
         }
         overlay = OverlayController(model: model)
+        overlay.onRainContacts = { [weak self] contacts in self?.sound.playRainContacts(contacts) }
         model.updater.beforeInstall = { [weak model] in model?.stop() }
         model.updater.start()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)

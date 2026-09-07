@@ -83,7 +83,7 @@ final class WeatherGPU {
             return try device.makeRenderPipelineState(descriptor: d)
         }
         background = try pipeline("backgroundVertex", "backgroundFragment")
-        particles = try pipeline("particleVertex", "particleFragment")
+        particles = try pipeline("snowVertex", "snowFragment")
         pane = try pipeline("backgroundVertex", "paneFragment")
         glass = try pipeline("glassVertex", "glassFragment")
         let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 1, height: 1, mipmapped: false)
@@ -134,24 +134,41 @@ final class WeatherGPU {
 
     private func encodePrecipitation(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms) {
         var u = input
-        if u.weather < 1.5 {
+        if u.weather > 0.5 && u.weather < 1.5 {
             encoder.setRenderPipelineState(particles)
             encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
             encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
             let area = min(2.8, max(0.35, (u.size.x * u.size.y) / (1440 * 900)))
-            let density = u.weather < 0.5 ? 60 + 1000 * pow(u.intensity, 1.15) : 70 + 760 * u.intensity
+            let density = 70 + 760 * u.intensity
             let count = Int(density * area * (u.gentle > 0.5 ? 0.65 : 1))
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: count)
         }
+    }
+
+    private func encodeSurface(_ encoder: MTLRenderCommandEncoder, uniforms input: WeatherUniforms,
+                               scene: MTLTexture, sprites: [GlassSprite]) throws {
+        guard !sprites.isEmpty else { return }
+        var u = input
+        let buffer = sprites.withUnsafeBytes { bytes in
+            device.makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: .storageModeShared)
+        }
+        guard let buffer else { throw CocoaError(.fileReadTooLarge) }
+        encoder.setRenderPipelineState(glass)
+        encoder.setFragmentTexture(scene, index: 0)
+        encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
+        encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
+        encoder.setVertexBuffer(buffer, offset: 0, index: 1)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: sprites.count)
     }
 
     func encode(command: MTLCommandBuffer, pass: MTLRenderPassDescriptor, resources: WeatherFrameResources,
                 uniforms input: WeatherUniforms, photo: MTLTexture?, sprites: [GlassSprite]) throws {
         guard input.glass > 0.5 else {
             guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
+            defer { encoder.endEncoding() }
             encodeBackground(encoder, uniforms: input, photo: photo)
             encodePrecipitation(encoder, uniforms: input)
-            encoder.endEncoding()
+            try encodeSurface(encoder, uniforms: input, scene: placeholder, sprites: sprites.filter { $0.kind == 4 })
             return
         }
         guard let target = pass.colorAttachments[0].texture else { throw CocoaError(.coderInvalidValue) }
@@ -177,6 +194,7 @@ final class WeatherGPU {
         } else { defocused = scene }
 
         guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
+        defer { encoder.endEncoding() }
         var u = input
         encoder.setRenderPipelineState(pane)
         encoder.setFragmentBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
@@ -184,20 +202,7 @@ final class WeatherGPU {
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         // Precipitation must not pass through the photo blur: it erased fine rain.
         encodePrecipitation(encoder, uniforms: input)
-        if !sprites.isEmpty {
-            // Immutable per-submission data cannot be overwritten by a later CPU frame.
-            // Shared *buffers* are supported on Intel as well as Apple GPUs.
-            let buffer = sprites.withUnsafeBytes { gpuBytes in
-                device.makeBuffer(bytes: gpuBytes.baseAddress!, length: gpuBytes.count, options: .storageModeShared)
-            }
-            guard let buffer else { encoder.endEncoding(); throw CocoaError(.fileReadTooLarge) }
-            encoder.setRenderPipelineState(glass)
-            encoder.setFragmentTexture(scene, index: 0)
-            encoder.setVertexBytes(&u, length: MemoryLayout<WeatherUniforms>.stride, index: 0)
-            encoder.setVertexBuffer(buffer, offset: 0, index: 1)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6, instanceCount: sprites.count)
-        }
-        encoder.endEncoding()
+        try encodeSurface(encoder, uniforms: input, scene: scene, sprites: sprites)
     }
 }
 
@@ -213,6 +218,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private let resources = WeatherFrameResources()
     private let gentle = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var onError: ((String) -> Void)?
+    var onRainContacts: (([RainContact]) -> Void)?
     private var hasReportedError = false
 
     init(gpu: WeatherGPU, preferences: Preferences) {
@@ -234,7 +240,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
               let command = gpu.queue.makeCommandBuffer() else { return }
         let now = CACurrentMediaTime()
         let size = SIMD2(Float(view.bounds.width), Float(view.bounds.height))
-        if preferences.windowGlass {
+        if preferences.windowGlass || preferences.weather == .rain {
             surface.update(deltaTime: Float(lastFrame.map { now - $0 } ?? 0), size: size, weather: preferences.weather,
                            intensity: Float(preferences.intensity), wind: Float(preferences.wind), gentle: gentle)
         }
@@ -247,7 +253,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
                                 glass: preferences.windowGlass ? 1 : 0, focus: Float(preferences.glassFocus))
         do {
             try gpu.encode(command: command, pass: pass, resources: resources, uniforms: u, photo: photo,
-                           sprites: preferences.windowGlass ? surface.sprites : [])
+                           sprites: preferences.windowGlass || preferences.weather == .rain ? surface.sprites : [])
         } catch {
             if !hasReportedError {
                 hasReportedError = true
@@ -265,6 +271,9 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
             }
         }
         command.commit()
+        if preferences.weather == .rain && preferences.windowGlass && !surface.frameContacts.isEmpty {
+            onRainContacts?(surface.frameContacts)
+        }
     }
 }
 
@@ -279,6 +288,7 @@ final class WeatherWindow: NSWindow {
 }
 
 final class OverlayController {
+    var onRainContacts: (([RainContact]) -> Void)?
     private let model: AppModel
     private var gpu: WeatherGPU?
     private var windows: [(WeatherWindow, MTKView, WeatherRenderer)] = []
@@ -349,6 +359,11 @@ final class OverlayController {
                     view.autoresizingMask = [.width, .height]
                     let renderer = WeatherRenderer(gpu: gpu, preferences: p)
                     renderer.onError = { [weak model] message in model?.stop(); model?.error = message }
+                    if windows.isEmpty {
+                        // Sound follows one display, so multi-monitor sessions do
+                        // not multiply the same ambient gain or contact frequency.
+                        renderer.onRainContacts = { [weak self] hits in self?.onRainContacts?(hits) }
+                    }
                     view.delegate = renderer
                     window.contentView = view
                     if window.immersive {

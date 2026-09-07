@@ -8,11 +8,15 @@ final class Ambience {
     private var targetWeather: Weather = .rain
     private var targetVolume: Float = 0
     private var failed = false
+    private var rainTaps: RainTapPlayer?
+    private var glassContactsEnabled = false
     var onError: ((String) -> Void)?
 
     func update(running: Bool, preferences: Preferences) {
         targetWeather = preferences.weather
         targetVolume = running && preferences.sound ? Float(preferences.volume) * 0.8 : 0
+        glassContactsEnabled = running && preferences.sound && preferences.windowGlass && preferences.weather == .rain
+        if !glassContactsEnabled || targetVolume == 0 { rainTaps?.stop() }
         guard targetVolume > 0 || !players.isEmpty else { return }
         if targetVolume > 0, players[targetWeather] == nil {
             do {
@@ -30,9 +34,18 @@ final class Ambience {
         if targetVolume > 0, let player = players[targetWeather], !player.isPlaying {
             if !player.play(), !failed { onError?("The sound output is unavailable. Check the Mac’s sound output, then toggle sound again."); failed = true }
         }
+        if glassContactsEnabled && targetVolume > 0 && rainTaps == nil {
+            do { rainTaps = try RainTapPlayer() }
+            catch { if !failed { onError?("Rain taps are unavailable. The ambient rain can still play."); failed = true } }
+        }
         if timer == nil {
             timer = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { [weak self] _ in self?.tick() }
         }
+    }
+    func playRainContacts(_ contacts: [RainContact]) {
+        guard glassContactsEnabled, targetWeather == .rain else { return }
+        // Follow the same fade and mute controls as the bed, including at startup.
+        rainTaps?.play(contacts, gain: min(targetVolume, players[.rain]?.volume ?? 0))
     }
     private func tick() {
         var fading = false
@@ -53,5 +66,6 @@ final class Ambience {
         timer?.invalidate(); timer = nil
         players.values.forEach { $0.stop() }
         players.removeAll()
+        rainTaps?.stop(); rainTaps = nil
     }
 }

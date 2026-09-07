@@ -67,6 +67,7 @@ struct MenuView: View {
                 }
                 VStack(spacing: 11) {
                     slider("Intensity", symbol: "drop", value: $model.preferences.intensity, ending: model.preferences.intensity < 0.33 ? "Light" : model.preferences.intensity < 0.7 ? "Steady" : "Heavy")
+                        .help(model.preferences.weather == .rain ? "How often drops strike the roof glass. Individual drops keep their natural size and approach speed." : "How much weather surrounds you.")
                     slider("Wind", symbol: "wind", value: $model.preferences.wind, ending: model.preferences.wind < 0.33 ? "Calm" : model.preferences.wind < 0.7 ? "Breezy" : "Gusty")
                     if model.preferences.windowGlass && model.preferences.backdrop == .istanbul {
                         slider("Softness", symbol: "camera.aperture", value: $model.preferences.glassFocus, ending: model.preferences.glassFocus < 0.3 ? "Clear" : model.preferences.glassFocus < 0.75 ? "Gentle" : "Soft")

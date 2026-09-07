@@ -1,7 +1,7 @@
 # Sokak
 
 - Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and an Istanbul photograph library.
-- Current release: 1.3.1. Fixes excessive photograph blur and faint rain. Bounded photo softness preserves street detail and colour; falling rain renders separately and grows in width, contrast and density with intensity. Glass beads respond during playback without resetting the pane. Calm movement, 15 weather-matched photographs, and signed GitHub updates through Sparkle remain available.
+- Current release: 1.4.0. Rain approaches and strikes a roof-like glass plane, briefly spreads and leaves water; live contacts trigger softly panned taps. Intensity changes contact frequency without thickening drops. Snow behavior, clear photographs, 15 weather-matched scenes and signed GitHub updates remain available.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak
@@ -13,7 +13,7 @@
 - Signing: current releases are ad-hoc signed and unnotarized. The app includes an ad-hoc library-validation exception for the bundled, upstream-signed Sparkle framework. Update feeds and archives have separate Ed25519 signatures; private keys are kept outside the repository in macOS Keychain.
 - Run: open `dist/Sokak.app`; click the menu-bar cloud.
 - Build: `bash scripts/build.sh` using Apple Command Line Tools and a recent Swift compiler.
-- Test: compile and run `Tests/CoreTests.swift` and `Tests/GlassTests.swift`, run the app with `--self-test docs/qa --motion-preview`, then `python3 scripts/verify_assets.py`. See [Validation](docs/VALIDATION.md) for exact commands and device coverage.
+- Test: compile and run `Tests/CoreTests.swift`, `Tests/GlassTests.swift` and `Tests/SnowTests.swift`, run the app with `--self-test docs/qa --motion-preview`, then `python3 scripts/verify_assets.py`. See [Validation](docs/VALIDATION.md) for exact commands and device coverage.
 - Release: build and validate reviewed source, generate the signed feed with `bash scripts/make_appcast.sh`, then publish the matching ZIP and SHA-256 to GitHub Releases before publishing `appcast.xml`. Download and verify the assets and signed feed. See `docs/RELEASING.md`.
 - Hosted services: public GitHub Releases and a signed appcast served from this repository. Cloudflare resources: none.
 - Scheduled tasks / LaunchAgents / login items: none. Optional daily update checks run only inside the app; off by default.

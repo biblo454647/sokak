@@ -6,7 +6,7 @@ enum Weather: String, Codable, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
     var symbol: String { switch self { case .rain: return "cloud.rain"; case .snow: return "snowflake"; case .mist: return "cloud.fog" } }
     var index: Float { switch self { case .rain: return 0; case .snow: return 1; case .mist: return 2 } }
-    var soundDescription: String { switch self { case .rain: return "Rain outside & soft taps on glass"; case .snow: return "Hushed winter wind"; case .mist: return "A slow, low breeze" } }
+    var soundDescription: String { switch self { case .rain: return "Soft rain tapping the glass above you"; case .snow: return "Hushed winter wind"; case .mist: return "A slow, low breeze" } }
 }
 
 enum Backdrop: String, Codable { case desktop, istanbul }

@@ -12,7 +12,7 @@ The repository's `docs/preview.png` adapts Maurice Flesier's [A snowy evening in
 
 Starting in 1.3, `docs/rain-window.gif` and the release's `rain-window.mp4` adapt Furkan Akkurt's [Rainy night Galata Bridge area Istanbul 2026](https://commons.wikimedia.org/wiki/File:Rainy_night_Galata_Bridge_area_Istanbul_2026.jpg) with cropping, dimming, defocus, refraction, droplets and animated rain. These adaptations are [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The earlier 1.2 rain preview adapts M. PINARCI's [Another Rainy Day](https://commons.wikimedia.org/wiki/File:Another_Rainy_Day_-_panoramio.jpg) under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
 
-The motion previews in `docs/snow-window.gif` and the release's `snow-window.mp4` adapt Maurice Flesier's Bağcılar photograph linked above with cropping, dimming, frost and animated snow. These adaptations are [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Preview videos are silent renderer exports; the original source photographs remain unchanged in the app.
+The motion previews in `docs/snow-window.gif` and the release's `snow-window.mp4` adapt Maurice Flesier's Bağcılar photograph linked above with cropping, dimming, frost and animated snow. These adaptations are [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The 1.4 rain MP4 includes original synthesized ambience and contact sounds (MIT); its adapted photograph/video retains CC BY-SA 4.0. GIFs and the snow MP4 are silent. The original source photographs remain unchanged in the app.
 
 ## Platform components
 

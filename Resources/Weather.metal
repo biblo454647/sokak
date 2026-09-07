@@ -59,7 +59,7 @@ fragment float4 backgroundFragment(VertexOut in [[stage_in]], constant Uniforms 
     return color;
 }
 
-vertex VertexOut particleVertex(uint vid [[vertex_id]], uint iid [[instance_id]], constant Uniforms &u [[buffer(0)]]) {
+vertex VertexOut snowVertex(uint vid [[vertex_id]], uint iid [[instance_id]], constant Uniforms &u [[buffer(0)]]) {
     VertexOut o;
     float seed=float(iid)+17.0;
     float depth=pow(hash(seed+4.2),1.55);
@@ -67,24 +67,7 @@ vertex VertexOut particleVertex(uint vid [[vertex_id]], uint iid [[instance_id]]
     float2 c=corner(vid);
     float t=u.time*(u.gentle>.5 ? .65 : 1.0);
     float2 p, extent;
-    if (u.weather < .5) {
-        // A new position, depth and shape at each off-screen birth. There is no
-        // wrapping sheet of identical streaks and no synchronised gust cycle.
-        float duration=mix(7.0,18.0,r1);
-        float life=t/duration+r2;
-        float generation=floor(life), phase=fract(life);
-        float birth=seed+generation*73.71;
-        depth=pow(hash(birth+5),1.6);
-        r3=hash(birth+27);
-        float gust=noise(float2(t*.045,seed*.007));
-        float slope=(hash(birth+12)-.5)*.045+u.wind*(.08+gust*.13);
-        p.y=phase*(u.size.y+160)-80;
-        p.x=hash(birth+44)*(u.size.x+320)-160+phase*u.size.y*slope;
-        // Density, width and contrast all respond to intensity; speed stays calm.
-        extent=float2(mix(.95,2.3,depth)*mix(.8,1.25,u.intensity),
-                      mix(3.2,10.5,depth)*(.7+r3*.5)*mix(.9,1.15,u.intensity));
-        p += float2(c.x*extent.x+c.y*extent.y*slope,c.y*extent.y);
-    } else {
+    {
         float speed=mix(13.0,122.0,depth)*(0.65+r3*.6);
         float travel=t*speed;
         p.y=fmod(r1*(u.size.y+100)+travel+sin(t*.7+r3*16)*depth*14,u.size.y+100)-50;
@@ -99,15 +82,10 @@ vertex VertexOut particleVertex(uint vid [[vertex_id]], uint iid [[instance_id]]
     o.uv=c; o.depth=depth; o.seed=r3;
     return o;
 }
-fragment float4 particleFragment(VertexOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
+fragment float4 snowFragment(VertexOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
     float alpha;
     float3 tint;
-    if (u.weather<.5) {
-        float soft=exp(-dot(in.uv*float2(1.45,1.1),in.uv*float2(1.45,1.1)));
-        soft*=1-smoothstep(.7,1.0,max(abs(in.uv.x),abs(in.uv.y)));
-        alpha=soft*mix(.10,.40,in.depth)*(.7+in.seed*.3)*mix(.65,1.2,u.intensity);
-        tint=float3(.84,.86,.87);
-    } else {
+    {
         float d=length(in.uv);
         float near=smoothstep(.84,1.0,in.depth);
         float core=mix(1-smoothstep(.18,.95,d),exp(-d*d*4.5)*(1-smoothstep(.75,1.0,d)),near);
@@ -175,6 +153,15 @@ fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[b
     constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);
     float2 q=in.local;
     float fade=in.opacity;
+    if (in.kind>3.5) {
+        // Seen almost end-on through a roof light: a soft round droplet approaches
+        // its contact point in depth. No screen-height streak or falling capsule.
+        float r=length(q);
+        float body=exp(-r*r*3.6)*(1-smoothstep(.68,1.0,r))*fade;
+        float shadow=body*.28;
+        float light=exp(-dot((q-float2(-.2,-.26))*2.5,(q-float2(-.2,-.26))*2.5))*body*.55;
+        return overTint(float4(float3(.025,.03,.032)*shadow,shadow),float3(.86,.9,.91),light);
+    }
     if (in.kind>2.5) {
         // A few flakes catch the pane and slowly melt; most snow remains outside.
         float r=length(q), a=atan2(q.y,q.x)+in.seed*6.28;
@@ -183,6 +170,23 @@ fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[b
         float alpha=crystal*(.45+grain*.55)*fade*.7*(1-smoothstep(.75,1.0,r));
         alpha*=smoothstep(0.0,.12,in.age);
         return float4(float3(.88,.94,.98)*alpha,alpha);
+    }
+    if (in.kind>1.5) {
+        // A filled, irregular water lamella spreads briefly and recoils. Its local
+        // refraction and contact edge fade into the deposited bead, without rings.
+        float angle=atan2(q.y,q.x);
+        float edge=1.0 + .065*sin(angle*3+in.seed*29) + .035*sin(angle*7-in.seed*41);
+        float r=length(q)*edge;
+        float aa=max(fwidth(r),.02);
+        float mask=(1-smoothstep(.92-aa,.92+aa,r));
+        mask*=smoothstep(0.0,.016,in.age)*(1-smoothstep(.16,.5,in.age));
+        float rim=exp(-pow((r-.86)/.095,2.0));
+        float2 offset=q*in.extent/u.size*(.7+rim*1.1);
+        float4 film=u.hasPhoto>.5 ? scene.sample(s,in.screenUV+offset)*mask*.52 : float4(0);
+        float upper=1-smoothstep(-.3,.55,q.y);
+        film=overTint(film,float3(.025,.033,.037),rim*mask*(.14+upper*.16));
+        float glint=exp(-pow((r-.88)/.035,2.0))*smoothstep(-.5,.8,q.y)*mask*.37;
+        return overTint(film,float3(.86,.91,.93),glint);
     }
     if (in.kind>.5) {
         float mask=(1-smoothstep(.25,1.0,abs(q.x)))*(1-smoothstep(.72,1.0,abs(q.y)))*fade;

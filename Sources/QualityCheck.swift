@@ -79,13 +79,23 @@ enum QualityCheck {
         }
         report["frames"] = frames
         report["audio"] = audio
+        let tapPlayer = try RainTapPlayer()
+        tapPlayer.play([RainContact(position: .zero, radius: 6, seed: 0.4, pan: 0)], gain: 0)
+        guard tapPlayer.playedContacts == 0 else { throw CocoaError(.coderInvalidValue) }
+        for variant in 0..<RainTapSound.variants {
+            let samples = RainTapSound.samples(variant: variant)
+            guard samples.count == 4410, samples.allSatisfy(\.isFinite), samples.first == 0, samples.last == 0,
+                  (samples.map(abs).max() ?? 1) <= 0.381 else { throw CocoaError(.coderInvalidValue) }
+        }
+        tapPlayer.stop()
+        report["contactAudio"] = "16 decodable original tap variants; bounded peaks; zero-gain contacts remain silent"
         model.preferences.backdrop = .istanbul
         try snapshotUI(model: model, output: output.appendingPathComponent("menu.png"))
         model.libraryVisible = true
         try snapshotUI(model: model, output: output.appendingPathComponent("library.png"))
         if CommandLine.arguments.contains("--motion-preview") {
             try motionPreviews(gpu: gpu, model: model, output: output)
-            report["motionPreviews"] = ["rain-window.mp4", "snow-window.mp4"]
+            report["motionPreviews"] = ["rain-window.mp4", "rain-preview.wav", "snow-window.mp4"]
         }
         report["result"] = "passed"
         let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
@@ -116,14 +126,14 @@ enum QualityCheck {
         pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
         let size = SIMD2<Float>(1440, 900)
         let simulation = surface ?? GlassSimulation(seed: 741)
-        if surface == nil && glass {
+        if surface == nil && (glass || weather == .rain) {
             for _ in 0..<Int(time * 60) {
                 simulation.update(deltaTime: 1 / 60, size: size, weather: weather, intensity: intensity, wind: 0.25, gentle: false)
             }
         }
         let u = WeatherUniforms(size: size, time: time, weather: weather.index, intensity: intensity, wind: 0.25, dimming: photo == nil ? 0 : 0.12, hasPhoto: photo == nil ? 0 : 1, photoSize: SIMD2(Float(photo?.width ?? 1), Float(photo?.height ?? 1)), gentle: 0, glass: glass ? 1 : 0, focus: focus)
         try gpu.encode(command: command, pass: pass, resources: resources ?? WeatherFrameResources(), uniforms: u,
-                       photo: photo, sprites: glass ? simulation.sprites : [])
+                       photo: photo, sprites: glass || weather == .rain ? simulation.sprites : [])
         if target.storageMode == .managed {
             guard let blit = command.makeBlitCommandEncoder() else { throw CocoaError(.coderInvalidValue) }
             blit.synchronize(resource: target)
@@ -183,7 +193,7 @@ enum QualityCheck {
             let url = output.appendingPathComponent("detail-reference." + name)
             try bitmap.representation(using: format, properties: [.compressionFactor: 0.95])!.write(to: url)
             let texture = try gpu.loadPhoto(url)
-            let clear = try render(gpu: gpu, weather: .rain, photo: texture, time: 13.7, glass: false, intensity: 1)
+            let clear = try render(gpu: gpu, weather: .rain, photo: texture, time: 13.7, glass: false, intensity: 1, surface: emptyGlass)
             for focus: Float in [0.65, 1] {
                 let frame = try render(gpu: gpu, weather: .rain, photo: texture, time: 13.7,
                                        output: output.appendingPathComponent("detail-\(name)-\(focus).png"),
@@ -208,13 +218,36 @@ enum QualityCheck {
                       sample(retina, x: 240, y: 200, channel: 0) < 25 else { throw CocoaError(.coderInvalidValue) }
             }
         }
-        let low = try render(gpu: gpu, weather: .rain, photo: nil, time: 13.7, glass: false, intensity: 0.1)
-        let high = try render(gpu: gpu, weather: .rain, photo: nil, time: 13.7, glass: false, intensity: 1)
-        let ratio = high.meanAlpha / low.meanAlpha
-        guard ratio > 6, high.meanAlpha > 0.001 else {
-            throw NSError(domain: "Sokak.QA", code: 4, userInfo: [NSLocalizedDescriptionKey: "Rain intensity remains too faint: high alpha \(high.meanAlpha), high/low \(ratio)"])
+        let surface = GlassSimulation(seed: 19)
+        surface.reset(size: SIMD2(1440, 900), weather: .rain, intensity: 0, populate: false)
+        surface.launchDrop(at: SIMD2(720, 450), radius: 7, duration: 0.3)
+        var contactEvents = 0, contactFrame: Frame?, settledFrame: Frame?
+        for i in 0..<66 {
+            surface.update(deltaTime: 1 / 120, size: SIMD2(1440, 900), weather: .rain, intensity: 0, wind: 0, gentle: false)
+            contactEvents += surface.frameContacts.filter { $0.position == SIMD2(720, 450) }.count
+            if [24, 42, 65].contains(i) {
+                let name = i == 24 ? "approach" : i == 42 ? "contact" : "settle"
+                let frame = try render(gpu: gpu, weather: .rain, photo: nil, time: Float(i) / 120,
+                                       output: output.appendingPathComponent("roof-\(name).png"), surface: surface)
+                if i == 24 { guard contactEvents == 0 else { throw CocoaError(.coderInvalidValue) } }
+                if i == 42 { contactFrame = frame }
+                if i == 65 { settledFrame = frame }
+            }
         }
-        return ["detail": checks, "retinaPhoto": "passed", "rainHighLowVisibilityRatio": ratio, "rainMaximumMeanAlpha": high.meanAlpha]
+        // Inspect the contact footprint, rather than rewarding long, opaque streaks.
+        func footprint(_ frame: Frame) -> Int {
+            var count = 0
+            for y in 425..<475 { for x in 695..<745 {
+                if frame.pixels[(y * frame.width + x) * 4 + 3] > 8 { count += 1 }
+            } }
+            return count
+        }
+        let impactArea = footprint(contactFrame!), settledArea = footprint(settledFrame!)
+        guard contactEvents == 1, impactArea > 100, settledArea > 30, impactArea > settledArea else {
+            throw NSError(domain: "Sokak.QA", code: 4, userInfo: [NSLocalizedDescriptionKey: "Roof contact missing: events \(contactEvents), spread pixels \(impactArea), settled pixels \(settledArea)"])
+        }
+        return ["detail": checks, "retinaPhoto": "passed", "roofContactEvents": contactEvents,
+                "roofImpactFootprint": impactArea, "roofSettledFootprint": settledArea]
     }
 
     private static func motionPreviews(gpu: WeatherGPU, model: AppModel, output: URL) throws {
@@ -238,9 +271,11 @@ enum QualityCheck {
             let simulation = GlassSimulation(seed: 741), resources = WeatherFrameResources()
             for _ in 0..<480 { simulation.update(deltaTime: 1 / 60, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false) }
             var timings: [Double] = []
+            var contacts: [(Double, RainContact)] = []
             for i in 0..<300 {
                 try autoreleasepool {
                     simulation.update(deltaTime: 1 / 30, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false)
+                    if weather == .rain { contacts += simulation.frameContacts.map { (Double(i) / 30, $0) } }
                     let frame = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / 30,
                                            width: width, height: height, surface: simulation, resources: resources)
                     timings.append(frame.gpuMilliseconds)
@@ -267,9 +302,41 @@ enum QualityCheck {
             let deadline = Date().addingTimeInterval(20)
             while writer.status == .writing && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
             guard writer.status == .completed else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
+            if weather == .rain {
+                try writeRainPreviewAudio(contacts: contacts, output: output.appendingPathComponent("rain-preview.wav"))
+            }
             timings.sort()
             print("Motion preview: \(weather.rawValue), 300 frames, median GPU \(timings[timings.count / 2]) ms at 960 × 600.")
         }
+    }
+
+    private static func writeRainPreviewAudio(contacts: [(Double, RainContact)], output: URL) throws {
+        let rate = RainTapSound.sampleRate, length = rate * 10
+        let bed = try AVAudioFile(forReading: Assets.root.appendingPathComponent("Audio/rain.m4a"),
+                                  commonFormat: .pcmFormatFloat32, interleaved: false)
+        guard Int(bed.processingFormat.sampleRate) == rate, bed.processingFormat.channelCount == 2,
+              let buffer = AVAudioPCMBuffer(pcmFormat: bed.processingFormat, frameCapacity: AVAudioFrameCount(length)) else { throw CocoaError(.coderInvalidValue) }
+        bed.framePosition = AVAudioFramePosition(rate * 8)
+        try bed.read(into: buffer, frameCount: AVAudioFrameCount(length))
+        guard Int(buffer.frameLength) == length, let channels = buffer.floatChannelData else { throw CocoaError(.fileReadCorruptFile) }
+        let gain: Float = 0.28
+        var stereo = [Float](repeating: 0, count: length * 2)
+        for i in 0..<length { stereo[i * 2] = channels[0][i] * gain; stereo[i * 2 + 1] = channels[1][i] * gain }
+        for (time, contact) in contacts {
+            let samples = RainTapSound.samples(variant: RainTapSound.variant(for: contact))
+            let start = Int(time * Double(rate)), volume = gain * RainTapSound.gain(for: contact)
+            let left = sqrt((1 - contact.pan) * 0.5), right = sqrt((1 + contact.pan) * 0.5)
+            for i in samples.indices where start + i < length {
+                stereo[(start + i) * 2] += samples[i] * volume * left
+                stereo[(start + i) * 2 + 1] += samples[i] * volume * right
+            }
+        }
+        for i in 0..<length {
+            let envelope = min(1, min(Float(i), Float(length - 1 - i)) / Float(rate / 20))
+            stereo[i * 2] *= envelope; stereo[i * 2 + 1] *= envelope
+        }
+        guard stereo.allSatisfy(\.isFinite), (stereo.map(abs).max() ?? 1) < 0.95 else { throw CocoaError(.coderInvalidValue) }
+        try RainTapSound.wave(samples: stereo, channels: 2).write(to: output)
     }
 
     private static func snapshotUI(model: AppModel, output: URL) throws {
