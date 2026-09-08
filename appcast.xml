@@ -6,6 +6,27 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Sokak</title>
         <item>
+            <title>1.6.0</title>
+            <pubDate>Tue, 08 Sep 2026 17:00:06 +0100</pubDate>
+            <link>https://github.com/biblo454647/sokak/releases/latest</link>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<!doctype html><html lang="en"><meta charset="utf-8"><title>Sokak 1.6.0</title>
+<h1>Somewhere to slow down</h1>
+<p>22 high-resolution photographs from 12 cities, ready offline.</p>
+<ul>
+<li>Rainy streets and reflections in İstanbul, Paris, Kyoto, Tokyo, Edinburgh, Amsterdam and Bergen.</li>
+<li>Real snowy views in İstanbul, Prague, Québec City, Strasbourg, Tallinn and Bern.</li>
+<li>13 rainy views, eight snowy views, and a grey Bosphorus view for mist. Sunny and repetitive photographs have been retired.</li>
+<li>The gallery is now called “A street somewhere”. Weather matching keeps rain and snow paired with suitable photographs.</li>
+</ul>
+<p>The rain and snow effects, smooth wiper, shortcuts, settings and personal photographs keep their existing behavior. Original photograph files are preserved; each author and license is credited inside Sokak.</p>
+</html>
+]]></description>
+            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.6.0/Sokak-1.6.0-universal.zip" length="153073615" type="application/octet-stream" sparkle:edSignature="DBTM8XSzd3tw42eYNGw1IzZn5GLMENCGYxDWUsyg6H/47UTGOmb5UBdWmP+gre7vF6t4hjhLi43xxeh2eAouAQ=="/>
+        </item>
+        <item>
             <title>1.5.2</title>
             <pubDate>Tue, 08 Sep 2026 15:22:12 +0100</pubDate>
             <link>https://github.com/biblo454647/sokak/releases/latest</link>
@@ -35,31 +56,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.1/Sokak-1.5.1-universal.zip" length="65562156" type="application/octet-stream" sparkle:edSignature="Nq5Yl/b18z/pmbnHIcrzoqKZtb+Br633Bw4YijsZUlD/pjqDDy6bFEK61+LrZCRFnKM7s5imsXW7AMQl7c1mAg=="/>
         </item>
-        <item>
-            <title>1.5.0</title>
-            <pubDate>Tue, 08 Sep 2026 14:30:53 +0100</pubDate>
-            <link>https://github.com/biblo454647/sokak/releases/latest</link>
-            <sparkle:version>8</sparkle:version>
-            <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<!doctype html>
-<html lang="en"><meta charset="utf-8"><title>Sokak 1.5.0</title>
-<h1>Water that stays. A wiper when you want it.</h1>
-<ul>
-<li>Small rain beads remain on the glass. Water no longer fades away on an expiry timer; it merges, grows heavier and can drain off the lower edge.</li>
-<li>Press Control–Option–Command–W for one smooth beam-wiper sweep. The blade gathers water at its edge while rain keeps falling.</li>
-<li>Choose your own combination under A few little details → Wiper shortcut, or use Wipe glass there. Escape cancels recording; shortcut conflicts keep your previous choice.</li>
-<li>Quiet stereo rubber strokes follow the wiper. Sound off silences them along with rain.</li>
-<li>The accepted rain approach, clear photographs and snow behavior are preserved.</li>
-</ul>
-<p>Your existing settings and imported photographs are preserved. No additional app or subscription is needed.</p>
-</html>
-]]></description>
-            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.0/Sokak-1.5.0-universal.zip" length="65562501" type="application/octet-stream" sparkle:edSignature="YJTfYfUmUeDX5noKicjRRwOy+LqhJQzgcA5psCApt4puU28lhcx5Qyqu4/IiATvhQgPCFNb/I9oResGbVGvBDA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: C3AXO4NRwO7eidvaLBTCAp8LlLdsQsjSt5+z1Ec9DGcM+fx9JVd/6u5UB6RN0vWus8m79dG7SE75Lsph3wWzBg==
-length: 4611
+edSignature: YG34GvpHpY4GNpU1LxJU/yIoqr19TzlovEXqSBTzIkaaptGZ0CcwLJNCpcqQNVoJFGQLC0XAPyySBrh1S89GBg==
+length: 4563
 -->
