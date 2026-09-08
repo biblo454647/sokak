@@ -15,6 +15,17 @@ import Foundation
         return s
     }
     static func main() {
+        let fastDisplay = grid()
+        fastDisplay.wipe()
+        for _ in 0..<96 { step(fastDisplay, dt: 1 / 240) }
+        let firstAngle = fastDisplay.wiper.pose(size: size).angle
+        step(fastDisplay, dt: 1 / 240)
+        precondition(fastDisplay.wiper.pose(size: size).angle > firstAngle,
+                     "The blade must advance even on display frames shorter than the water physics step")
+        precondition(abs(fastDisplay.wiper.age - 97 / Float(240)) < 0.00001)
+        let hardware = fastDisplay.sprites.filter { $0.kind > 5.5 }
+        precondition(hardware.count == 4 && hardware.allSatisfy { $0.seed > 0 && $0.padding.y.isFinite },
+                     "Hardware carries a finite shutter interval and pivot; water sprites remain sharp")
         let pinned = GlassSimulation(seed: 7)
         pinned.reset(size: size, weather: .rain, intensity: 0, populate: false)
         pinned.addImpact(at: SIMD2(450, 220), radius: 3)

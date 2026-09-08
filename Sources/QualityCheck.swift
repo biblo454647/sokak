@@ -47,6 +47,7 @@ enum QualityCheck {
         guard color.redComponent > 0.65, color.blueComponent < 0.2, color.greenComponent < 0.2 else { throw CocoaError(.coderInvalidValue) }
         report["photoColorRegression"] = "passed"
         report["photoVisibilityAndRainIntensity"] = try visibilityRegression(gpu: gpu, output: output)
+        report["exteriorCache"] = try cacheRegression(gpu: gpu, photo: colorTexture)
         var frames: [[String: Any]] = []
         for weather in Weather.allCases {
             let sceneID = weather == .snow ? "bagcilar-evening" : "galata-rain"
@@ -129,6 +130,30 @@ enum QualityCheck {
         let pixels: [UInt8]
         let gpuMilliseconds: Double
     }
+    static func cacheRegression(gpu: WeatherGPU, photo: MTLTexture) throws -> String {
+        let resources = WeatherFrameResources(), dry = GlassSimulation(seed: 1)
+        var expectedPasses = 0
+        let cases: [(Weather, Float, MTLTexture?, Int, Bool)] = [
+            (.rain, 0.65, photo, 1440, true), (.rain, 0.65, photo, 1440, false),
+            (.snow, 0.65, photo, 1440, false), (.rain, 1, photo, 1440, true),
+            (.rain, 1, nil, 1440, true), (.mist, 1, nil, 1440, true),
+            (.mist, 1, nil, 1440, true), (.rain, 1, nil, 1440, true),
+            (.rain, 1, photo, 2880, true)]
+        for (i, item) in cases.enumerated() {
+            let (weather, focus, texture, width, refresh) = item
+            let time = Float(i)
+            let cached = try render(gpu: gpu, weather: weather, photo: texture, time: time, width: width,
+                                    focus: focus, surface: dry, resources: resources)
+            let reference = try render(gpu: gpu, weather: weather, photo: texture, time: time, width: width,
+                                       focus: focus, surface: dry)
+            if refresh { expectedPasses += 1 }
+            guard cached.pixels == reference.pixels, resources.exteriorPasses == expectedPasses else {
+                throw NSError(domain: "Sokak.QA", code: 4, userInfo: [NSLocalizedDescriptionKey: "Stale exterior or redundant pass at cache case \(i)"])
+            }
+        }
+        return "Cached frames match fresh rendering; photo, focus, size and moving-mist invalidation pass"
+    }
+
     static func render(gpu: WeatherGPU, weather: Weather, photo: MTLTexture?, time: Float, output: URL? = nil,
                        width: Int = 1440, height: Int = 900, glass: Bool = true,
                        intensity: Float = 0.65, focus: Float = 0.65,
@@ -287,22 +312,24 @@ enum QualityCheck {
             guard writer.startWriting() else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
             writer.startSession(atSourceTime: .zero)
             let simulation = GlassSimulation(seed: 741), resources = WeatherFrameResources()
+            let fps: Int32 = wiping ? 60 : 30
+            let frameCount = Int(fps) * 10
             for _ in 0..<480 { simulation.update(deltaTime: 1 / 60, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false) }
             if wiping {
                 for _ in 0..<2400 { simulation.update(deltaTime: 1 / 60, size: SIMD2(1440, 900), weather: .rain, intensity: 0.65, wind: 0.25, gentle: false) }
             }
             var timings: [Double] = []
             var contacts: [(Double, RainContact)] = []
-            for i in 0..<300 {
+            for i in 0..<frameCount {
                 try autoreleasepool {
-                    if wiping && i == 60 { simulation.wipe() }
-                    simulation.update(deltaTime: 1 / 30, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false)
-                    if weather == .rain { contacts += simulation.frameContacts.map { (Double(i) / 30, $0) } }
-                    let frame = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / 30,
+                    if wiping && i == Int(fps) * 2 { simulation.wipe() }
+                    simulation.update(deltaTime: 1 / Float(fps), size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false)
+                    if weather == .rain { contacts += simulation.frameContacts.map { (Double(i) / Double(fps), $0) } }
+                    let frame = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / Float(fps),
                                            width: width, height: height, surface: simulation, resources: resources)
                     timings.append(frame.gpuMilliseconds)
-                    if wiping && [0, 75, 135].contains(i) {
-                        _ = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / 30,
+                    if wiping && [0, Int(fps) * 5 / 2, Int(fps) * 9 / 2].contains(i) {
+                        _ = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / Float(fps),
                                        output: output.appendingPathComponent("wiper-frame-\(i).png"), surface: simulation)
                     }
                     let deadline = Date().addingTimeInterval(10)
@@ -320,7 +347,7 @@ enum QualityCheck {
                         }
                     }
                     CVPixelBufferUnlockBaseAddress(pixel, [])
-                    guard adaptor.append(pixel, withPresentationTime: CMTime(value: Int64(i), timescale: 30)) else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
+                    guard adaptor.append(pixel, withPresentationTime: CMTime(value: Int64(i), timescale: fps)) else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
                 }
             }
             input.markAsFinished()
@@ -332,7 +359,7 @@ enum QualityCheck {
                 try writeRainPreviewAudio(contacts: contacts, output: output.appendingPathComponent(name + "-preview.wav"), wipeAt: wiping ? 2 : nil)
             }
             timings.sort()
-            print("Motion preview: \(name), 300 frames, median GPU \(timings[timings.count / 2]) ms at 960 × 600.")
+            print("Motion preview: \(name), \(frameCount) frames at \(fps) fps, median GPU \(timings[timings.count / 2]) ms at 960 × 600.")
         }
     }
 

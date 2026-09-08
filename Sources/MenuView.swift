@@ -130,6 +130,7 @@ struct MenuView: View {
                             }
                         }
                         Toggle("Low power · 30 fps", isOn: $model.preferences.economical)
+                            .help("Weather uses 30 fps. The brief wiper sweep uses your display's refresh rate, then returns to 30 fps.")
                         Toggle("Match photos to the weather", isOn: $model.preferences.matchSeason)
                         UpdateSettings(updater: model.updater)
                         slider("Dimming", symbol: "moon", value: $model.preferences.dimming, ending: "\(Int(model.preferences.dimming * 100))%", range: 0...0.65)

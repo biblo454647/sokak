@@ -16,6 +16,6 @@ ffmpeg -hide_banner -loglevel error -y -i dist/previews/rain-window.mp4 \
     -filter_complex '[0:v]fps=12,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=full:max_colors=256[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle' \
     -loop 0 docs/rain-window.gif
 ffmpeg -hide_banner -loglevel error -y -i dist/previews/wiper-window.mp4 \
-    -filter_complex '[0:v]fps=15,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=full:max_colors=256[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle' \
+    -filter_complex '[0:v]fps=30,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=full:max_colors=256[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle' \
     -loop 0 docs/wiper-window.gif
 echo 'Prepared rain and wiper GIFs, synchronized sound previews, and the unchanged-style snow MP4.'

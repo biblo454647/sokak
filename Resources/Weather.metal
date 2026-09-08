@@ -134,6 +134,7 @@ struct GlassOut {
     float seed;
     float kind;
     float opacity;
+    float2 pivotOffset;
 };
 vertex GlassOut glassVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
                            constant Uniforms &u [[buffer(0)]], device const GlassSprite *sprites [[buffer(1)]]) {
@@ -143,7 +144,7 @@ vertex GlassOut glassVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     GlassOut o;
     o.position=float4(p.x/u.size.x*2-1,1-p.y/u.size.y*2,0,1);
     o.local=c; o.screenUV=p/u.size; o.extent=d.extent; o.axis=d.axis;
-    o.age=d.age; o.seed=d.seed; o.kind=d.kind; o.opacity=d.opacity;
+    o.age=d.age; o.seed=d.seed; o.kind=d.kind; o.opacity=d.opacity; o.pivotOffset=d.padding;
     return o;
 }
 float4 overTint(float4 base, float3 tint, float alpha) {
@@ -171,29 +172,41 @@ fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[b
         // Narrow graphite hardware: rubber lip, bevelled spine, offset arm and
         // one covered hinge. All dimensions are points, with a soft contact shadow.
         float scale=clamp(u.size.y/900.0,.65,1.5);
-        float2 p=q*in.extent;
+        float2 pixel=q*in.extent;
         bool blade=in.kind<6.5, arm=in.kind>6.5 && in.kind<7.5;
-        float halfWidth=(blade ? 3.3 : arm ? 2.4 : 5.4)*scale;
-        float halfLength=in.extent.y-(blade || arm ? 6.0 : 2.0)*scale;
-        float bow=blade ? .8*scale*(1-q.y*q.y) : 0;
-        p.x-=bow;
-        halfWidth*=blade ? .82+.18*(1-q.y*q.y) : 1.0;
-        float radius=min(halfWidth,1.7*scale);
-        float d=roundedBox(p,float2(halfWidth,halfLength),radius);
-        float aa=max(fwidth(d),.45);
-        float body=1-smoothstep(-aa,aa,d);
-        float shadowD=roundedBox(p-float2(2.1,2.5)*scale,float2(halfWidth+.7*scale,halfLength),radius);
-        float shadow=(1-smoothstep(-1.0*scale,4.0*scale,shadowD))*.24;
-        float3 color=blade ? float3(.035,.042,.046) : float3(.067,.075,.081);
-        float bevel=exp(-pow((p.x+halfWidth*.58)/(.38*scale),2.0));
-        float illumination=.55+.45*abs(dot(in.axis,normalize(float2(.4,-1))));
-        color+=float3(.14,.15,.16)*bevel*illumination;
-        if (blade) {
-            float spine=exp(-pow(p.x/(.85*scale),2.0));
-            color=mix(color,float3(.095,.106,.114),spine*.6);
-            color*=1-.3*smoothstep(halfWidth*.4,halfWidth,p.x);
+        float4 integrated=float4(0);
+        // A short shutter exposure integrates the moving hardware itself. The
+        // photograph and water remain sharp; this is not a trail of ghost blades.
+        for (int sample=0; sample<12; ++sample) {
+            float theta=in.seed*((float(sample)+.5)/12.0);
+            float2 relative=pixel+in.pivotOffset;
+            float2 p=float2(cos(theta)*relative.x-sin(theta)*relative.y,
+                            sin(theta)*relative.x+cos(theta)*relative.y)-in.pivotOffset;
+            float longitudinal=p.y/max(1.0,in.age);
+            float arch=max(0.0,1.0-longitudinal*longitudinal);
+            float halfWidth=(blade ? 3.3 : arm ? 2.4 : 5.4)*scale;
+            float halfLength=in.age-(blade || arm ? 6.0 : 2.0)*scale;
+            float bow=blade ? .8*scale*arch : 0;
+            p.x-=bow;
+            halfWidth*=blade ? .82+.18*arch : 1.0;
+            float radius=min(halfWidth,1.7*scale);
+            float d=roundedBox(p,float2(halfWidth,halfLength),radius);
+            float aa=max(fwidth(d),.45);
+            float body=1-smoothstep(-aa,aa,d);
+            float shadowD=roundedBox(p-float2(2.1,2.5)*scale,float2(halfWidth+.7*scale,halfLength),radius);
+            float shadow=(1-smoothstep(-1.0*scale,4.0*scale,shadowD))*.24;
+            float3 color=blade ? float3(.035,.042,.046) : float3(.067,.075,.081);
+            float bevel=exp(-pow((p.x+halfWidth*.58)/(.38*scale),2.0));
+            float illumination=.55+.45*abs(dot(in.axis,normalize(float2(.4,-1))));
+            color+=float3(.14,.15,.16)*bevel*illumination;
+            if (blade) {
+                float spine=exp(-pow(p.x/(.85*scale),2.0));
+                color=mix(color,float3(.095,.106,.114),spine*.6);
+                color*=1-.3*smoothstep(halfWidth*.4,halfWidth,p.x);
+            }
+            integrated+=overTint(float4(float3(.01)*shadow,shadow),color,body*.98);
         }
-        return overTint(float4(float3(.01)*shadow,shadow),color,body*.98);
+        return integrated/12.0;
     }
     if (in.kind>3.5) {
         // Seen almost end-on through a roof light: a soft round droplet approaches

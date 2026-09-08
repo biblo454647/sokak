@@ -83,6 +83,7 @@ final class GlassSimulation {
     private var untilShower: Float = 0
     private var rainHazard: Float = 0.8
     private var initialized = false
+    private var wiperExposure: Float = 0
 
     init(seed: UInt64 = UInt64.random(in: 1...UInt64.max)) { state = seed }
 
@@ -99,7 +100,7 @@ final class GlassSimulation {
         elapsed = 0; remainder = 0; untilImpact = 0.8; untilMerge = 0; impacts = 0; merges = 0
         shower = 0.6; showerTarget = 0.6; untilShower = 3
         rainHazard = 0.8
-        wiper.reset(); drainedVolume = 0
+        wiper.reset(); drainedVolume = 0; wiperExposure = 0
         initialized = true
         // A new rain session starts with dry glass. Water is deposited only by
         // drops that approach and contact the pane. Preserve the snow field.
@@ -181,9 +182,13 @@ final class GlassSimulation {
         let step: Float = 1 / 120
         while remainder + 0.000001 >= step {
             tick(step * (gentle ? 0.55 : 1), intensity: intensity, wind: wind, precipitating: precipitating)
-            advanceWiper(step)
             remainder = max(0, remainder - step)
         }
+        // Water keeps its fixed physics step; the blade follows every displayed
+        // frame, including refresh intervals shorter than that physics step.
+        let frameDelta = min(deltaTime, 0.1)
+        advanceWiper(frameDelta)
+        wiperExposure = min(frameDelta, 1 / 60) * 0.5
     }
 
     private func tick(_ dt: Float, intensity: Float, wind: Float, precipitating: Bool) {
@@ -347,7 +352,7 @@ final class GlassSimulation {
             result.append(GlassSprite(center: splash.center, extent: SIMD2(radius, radius * (0.9 + splash.seed * 0.16)),
                                       axis: SIMD2(0, 1), age: splash.age, seed: splash.seed, kind: 2, opacity: 1))
         }
-        result += wiper.sprites(size: size)
+        result += wiper.sprites(size: size, exposure: wiperExposure)
         return result
     }
 }

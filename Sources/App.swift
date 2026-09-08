@@ -3,14 +3,15 @@ import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let model = AppModel(
-        defaults: CommandLine.arguments.contains("--self-test") ? UserDefaults(suiteName: "com.sokakapp.Sokak.selftest")! : .standard,
-        includePersonalPhotos: !CommandLine.arguments.contains("--self-test")
+        defaults: CommandLine.arguments.contains("--self-test") || CommandLine.arguments.contains("--interaction-check") ? UserDefaults(suiteName: "com.sokakapp.Sokak.selftest")! : .standard,
+        includePersonalPhotos: !CommandLine.arguments.contains("--self-test") && !CommandLine.arguments.contains("--interaction-check")
     )
     private var status: NSStatusItem!
     private let popover = NSPopover()
     private var overlay: OverlayController!
     private let sound = Ambience()
     private let shortcuts = Shortcuts()
+    private var displayedSymbol = ""
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -49,8 +50,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.animates = false
         popover.delegate = self
         let height = min(CGFloat(730), (NSScreen.main?.visibleFrame.height ?? 900) - 65)
-        popover.contentSize = NSSize(width: 390, height: height)
-        popover.contentViewController = NSHostingController(rootView: MenuView(model: model, height: height))
+        let controller = NSHostingController(rootView: MenuView(model: model, height: height))
+        controller.sizingOptions = []
+        (controller.view as? NSHostingView<MenuView>)?.sizingOptions = []
+        controller.view.setFrameSize(NSSize(width: 390, height: height))
+        controller.preferredContentSize = NSSize(width: 390, height: height)
+        popover.contentViewController = controller
+        popover.contentSize = controller.preferredContentSize
         model.closePopover = { [weak self] in self?.popover.performClose(nil) }
         model.onChange = { [weak self] in self?.synchronize() }
         model.onRunningChange = { [weak self] in self?.synchronize() }
@@ -69,12 +75,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         overlay.update()
         if !popover.isShown { overlay.focusImmersive() }
         sound.update(running: model.running, preferences: model.preferences)
-        let image = NSImage(systemSymbolName: model.running ? model.preferences.weather.symbol + (model.preferences.weather == .rain ? ".fill" : "") : "cloud", accessibilityDescription: "Sokak — \(model.running ? "weather running" : "paused")")
-        image?.isTemplate = true
-        status.button?.image = image
+        updateStatusImage()
         status.button?.toolTip = "Sokak · \(model.running ? model.preferences.weather.title : "Paused") · ⌃⌥⌘S"
     }
-    func popoverDidClose(_ notification: Notification) { model.recordingWiperShortcut = false; overlay.focusImmersive() }
+    private func updateStatusImage() {
+        // Changing an anchor button's image while AppKit is tracking its popover
+        // can relocate the window. Apply the latest icon once the menu closes.
+        guard !popover.isShown else { return }
+        let symbol = model.running ? model.preferences.weather.symbol + (model.preferences.weather == .rain ? ".fill" : "") : "cloud"
+        guard displayedSymbol != symbol else { return }
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Sokak")
+        image?.size = NSSize(width: 18, height: 18)
+        image?.isTemplate = true
+        status.button?.image = image
+        displayedSymbol = symbol
+    }
+    func popoverDidClose(_ notification: Notification) { model.recordingWiperShortcut = false; updateStatusImage(); overlay.focusImmersive() }
     @objc private func statusClicked() {
         if NSApp.currentEvent?.type == .rightMouseUp { model.toggle(); return }
         if popover.isShown { popover.performClose(nil) } else { showPopover() }
@@ -90,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationWillTerminate(_ notification: Notification) { overlay?.stop(); sound.stopImmediately() }
 }
 
+#if !SOKAK_INTERACTION_TEST
 @main
 struct SokakApplication {
     static func main() {
@@ -99,3 +116,4 @@ struct SokakApplication {
         withExtendedLifetime(delegate) { app.run() }
     }
 }
+#endif

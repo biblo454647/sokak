@@ -6,7 +6,7 @@ Sokak is a native macOS menu bar app for a quiet moment beneath rainy glass: dro
 
 ![A beam wiper gathers water and clears the glass while rain continues over Galata](docs/wiper-window.gif)
 
-Wiper preview: actual renderer output over Furkan Akkurt's [rainy Galata Bridge photograph](https://commons.wikimedia.org/wiki/File:Rainy_night_Galata_Bridge_area_Istanbul_2026.jpg). Cropping, dimming, defocus, refraction, weather and the wiper added; this adaptation is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+Wiper preview: actual renderer output over Furkan Akkurt's [rainy Galata Bridge photograph](https://commons.wikimedia.org/wiki/File:Rainy_night_Galata_Bridge_area_Istanbul_2026.jpg). Cropping, dimming, defocus, refraction, weather and the wiper added; this adaptation is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The GIF uses 30 fps; the [60 fps preview with sound](https://github.com/biblo454647/sokak/releases/download/v1.5.2/wiper-window.mp4) shows the full sweep.
 
 ![Snow drifting outside a softly frosted window in Bağcılar](docs/snow-window.gif)
 
@@ -16,7 +16,7 @@ Snow preview: actual renderer output over Maurice Flesier's [Bağcılar photogra
 
 **[Download Sokak for Mac](https://github.com/biblo454647/sokak/releases/latest)** · **[Browse the source](https://github.com/biblo454647/sokak)** · **[Report an issue](https://github.com/biblo454647/sokak/issues)**
 
-Download **Sokak-1.5.1-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
+Download **Sokak-1.5.2-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
 
 **Already using 1.2 or earlier?** Install the current version once from the ZIP; those older versions do not have an updater. From 1.3 onward, click **Updates** at the bottom of the menu, then **Install Update → Install and Relaunch**. Your settings and imported photographs are preserved. Optional automatic checks are in **A few little details**; installation always stays your choice. Updates come from this repository's GitHub Releases through a signed feed and signed archives. No GitHub sign-in is needed. Keep the app in a writable Applications folder, rather than running from the ZIP or a read-only disk image.
 

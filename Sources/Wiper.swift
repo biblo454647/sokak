@@ -64,7 +64,8 @@ struct WiperMotion {
         let bin = min(Self.bins - 1, max(0, Int((r - pose.inner) / (pose.outer - pose.inner) * Float(Self.bins))))
         carried[bin] += volume
     }
-    func pose(size: SIMD2<Float>) -> WiperPose {
+    func pose(size: SIMD2<Float>, at time: Float? = nil) -> WiperPose {
+        let age = time ?? self.age
         let scale = min(1.5, max(0.65, size.y / 900))
         let pivot = SIMD2(size.x * 0.5, size.y + 32 * scale)
         let outer = sqrt(pow(size.x * 0.5, 2) + pivot.y * pivot.y) + 12 * scale
@@ -78,14 +79,19 @@ struct WiperMotion {
                          inner: 48 * scale, outer: outer, scale: scale, direction: returning ? -1 : 1)
     }
 
-    func sprites(size: SIMD2<Float>) -> [GlassSprite] {
+    func sprites(size: SIMD2<Float>, exposure: Float = 0) -> [GlassSprite] {
         guard active else { return [] }
         let p = pose(size: size), axis = p.axis
+        let shutterAngle = p.angle - pose(size: size, at: max(0, age - exposure)).angle
         var result: [GlassSprite] = []
         func segment(_ start: SIMD2<Float>, _ end: SIMD2<Float>, width: Float, kind: Float, opacity: Float = 1) -> GlassSprite {
             let d = end - start, length = sqrt(d.x * d.x + d.y * d.y)
-            return GlassSprite(center: (start + end) * 0.5, extent: SIMD2(width, length * 0.5 + 6 * p.scale),
-                               axis: d / max(0.001, length), age: age, seed: 0.42, kind: kind, opacity: opacity)
+            let center = (start + end) * 0.5, direction = d / max(0.001, length)
+            let right = SIMD2(direction.y, -direction.x), offset = center - p.pivot
+            let margin = abs(shutterAngle) * (p.outer + 20 * p.scale)
+            return GlassSprite(center: center, extent: SIMD2(width + margin, length * 0.5 + 6 * p.scale + margin),
+                               axis: direction, age: length * 0.5 + 6 * p.scale, seed: shutterAngle, kind: kind, opacity: opacity,
+                               padding: SIMD2(offset.x * right.x + offset.y * right.y, offset.x * direction.x + offset.y * direction.y))
         }
         let spacing = (p.outer - p.inner) / Float(Self.bins)
         for i in carried.indices where carried[i] > 0 {
@@ -100,8 +106,7 @@ struct WiperMotion {
         result.append(segment(p.pivot, armEnd, width: 8 * p.scale, kind: 7))
         result.append(segment(armEnd, hinge, width: 8 * p.scale, kind: 7))
         result.append(segment(p.point(p.inner), p.point(p.outer), width: 11 * p.scale, kind: 6))
-        result.append(GlassSprite(center: hinge, extent: SIMD2(8 * p.scale, 13 * p.scale), axis: axis,
-                                  age: age, seed: 0.42, kind: 8, opacity: 1))
+        result.append(segment(hinge - axis * 7 * p.scale, hinge + axis * 7 * p.scale, width: 8 * p.scale, kind: 8))
         return result
     }
 }

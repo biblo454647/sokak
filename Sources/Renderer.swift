@@ -20,11 +20,25 @@ struct WeatherUniforms {
     var padding2: Float = 0
 }
 
+struct ExteriorKey: Equatable {
+    var size: SIMD2<Float>
+    var pixels: SIMD2<Int>
+    var photo: ObjectIdentifier?
+    var photoSize: SIMD2<Float>
+    var dimming: Float
+    var focus: Float
+}
+
 final class WeatherFrameResources {
     private var scene: MTLTexture?
     private var defocused: MTLTexture?
     private var blur: MPSImageGaussianBlur?
     private var blurSigma: Float = 0
+    var exteriorKey: ExteriorKey?
+    var preparedBackground: MTLTexture?
+    var retainedPhoto: MTLTexture?
+    private(set) var exteriorPasses = 0
+    func recordExterior() { exteriorPasses += 1 }
 
     func blurredScene(device: MTLDevice, command: MTLCommandBuffer, source: MTLTexture, sigma: Float) throws -> MTLTexture {
         if defocused?.width != source.width || defocused?.height != source.height {
@@ -173,25 +187,35 @@ final class WeatherGPU {
         }
         guard let target = pass.colorAttachments[0].texture else { throw CocoaError(.coderInvalidValue) }
         let scene = try resources.sceneTexture(device: device, width: target.width, height: target.height)
-        let exterior = MTLRenderPassDescriptor()
-        exterior.colorAttachments[0].texture = scene
-        exterior.colorAttachments[0].loadAction = .clear
-        exterior.colorAttachments[0].storeAction = .store
-        exterior.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
-        guard let outside = command.makeRenderCommandEncoder(descriptor: exterior) else { throw CocoaError(.coderInvalidValue) }
-        encodeBackground(outside, uniforms: input, photo: photo)
-        outside.endEncoding()
-        guard let blit = command.makeBlitCommandEncoder() else { throw CocoaError(.coderInvalidValue) }
-        blit.generateMipmaps(for: scene)
-        blit.endEncoding()
+        let key = ExteriorKey(size: input.size, pixels: SIMD2(target.width, target.height),
+                              photo: photo.map { ObjectIdentifier($0) }, photoSize: input.photoSize,
+                              dimming: input.dimming, focus: input.focus)
+        // Rain and snow have a still exterior. Reuse its mipmaps and soft focus
+        // until the photo, dimming, focus or display size changes. Mist moves.
+        if input.weather > 1.5 || resources.exteriorKey != key || resources.preparedBackground == nil {
+            let exterior = MTLRenderPassDescriptor()
+            exterior.colorAttachments[0].texture = scene
+            exterior.colorAttachments[0].loadAction = .clear
+            exterior.colorAttachments[0].storeAction = .store
+            exterior.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
+            guard let outside = command.makeRenderCommandEncoder(descriptor: exterior) else { throw CocoaError(.coderInvalidValue) }
+            encodeBackground(outside, uniforms: input, photo: photo)
+            outside.endEncoding()
+            guard let blit = command.makeBlitCommandEncoder() else { throw CocoaError(.coderInvalidValue) }
+            blit.generateMipmaps(for: scene)
+            blit.endEncoding()
 
-        let defocused: MTLTexture
-        if input.hasPhoto > 0.5 && input.focus > 0.001 {
-            // Keep the street readable even with a previously saved focus of 1.
-            // Softness is measured in logical points, including on Retina displays.
-            let sigma = max(0.05, input.focus * input.focus * 2.4 * Float(target.width) / input.size.x)
-            defocused = try resources.blurredScene(device: device, command: command, source: scene, sigma: sigma)
-        } else { defocused = scene }
+            if input.hasPhoto > 0.5 && input.focus > 0.001 {
+                // Keep the street readable even with a previously saved focus of 1.
+                // Softness is measured in logical points, including on Retina displays.
+                let sigma = max(0.05, input.focus * input.focus * 2.4 * Float(target.width) / input.size.x)
+                resources.preparedBackground = try resources.blurredScene(device: device, command: command, source: scene, sigma: sigma)
+            } else { resources.preparedBackground = scene }
+            resources.exteriorKey = input.weather > 1.5 ? nil : key
+            resources.retainedPhoto = photo
+            resources.recordExterior()
+        }
+        guard let defocused = resources.preparedBackground else { throw CocoaError(.coderInvalidValue) }
 
         guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw CocoaError(.coderInvalidValue) }
         defer { encoder.endEncoding() }
@@ -214,7 +238,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private let start = CACurrentMediaTime()
     private let weatherOffset = Float.random(in: 0...5000)
     private var lastFrame: CFTimeInterval?
-    private let surface = GlassSimulation()
+    private var surface = GlassSimulation()
     private let resources = WeatherFrameResources()
     private let gentle = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var onError: ((String) -> Void)?
@@ -222,11 +246,24 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     var onWiperStart: (() -> Void)?
     private var hasReportedError = false
     private var pendingWipe = false
-    func wipeGlass() { if preferences.weather == .rain && preferences.windowGlass { pendingWipe = true } }
+    private weak var view: MTKView?
+    var onPresentedFrame: ((CFTimeInterval, Double, Bool, Bool) -> Void)?
+    func wipeGlass() {
+        if preferences.weather == .rain && preferences.windowGlass { pendingWipe = true; updateCadence() }
+    }
 
-    init(gpu: WeatherGPU, preferences: Preferences) {
+    private func updateCadence() {
+        guard let view else { return }
+        let displayRate = min(120, max(30, view.window?.screen?.maximumFramesPerSecond ?? 60))
+        let economy = preferences.economical || ProcessInfo.processInfo.isLowPowerModeEnabled
+        let rate = pendingWipe || surface.wiper.active ? displayRate : (economy ? min(30, displayRate) : min(60, displayRate))
+        if view.preferredFramesPerSecond != rate { view.preferredFramesPerSecond = rate }
+    }
+
+    init(gpu: WeatherGPU, preferences: Preferences, surface: GlassSimulation? = nil) {
         self.gpu = gpu
         self.preferences = preferences
+        if let surface { self.surface = surface }
         super.init()
     }
     func configure(_ preferences: Preferences, photoURL: URL?) throws {
@@ -239,6 +276,8 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     }
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
     func draw(in view: MTKView) {
+        self.view = view
+        updateCadence()
         guard !view.isPaused, view.bounds.width > 0, view.bounds.height > 0,
               let drawable = view.currentDrawable, let pass = view.currentRenderPassDescriptor,
               let command = gpu.queue.makeCommandBuffer() else { return }
@@ -268,6 +307,14 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
             return
         }
         command.present(drawable)
+        if let onPresentedFrame {
+            let wiping = surface.wiper.active
+            drawable.addPresentedHandler { drawable in
+                let suppliedTimestamp = drawable.presentedTime > 0
+                let stamp = suppliedTimestamp ? drawable.presentedTime : CACurrentMediaTime()
+                DispatchQueue.main.async { onPresentedFrame(stamp, max(0, command.gpuEndTime - command.gpuStartTime) * 1000, wiping, suppliedTimestamp) }
+            }
+        }
         command.addCompletedHandler { [weak self] command in
             guard command.status == .error else { return }
             DispatchQueue.main.async {
