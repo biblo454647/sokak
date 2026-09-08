@@ -74,6 +74,8 @@ For 1.5.0, an unchanged official 1.4.0 app completed the same native public-feed
 
 The release script verifies feed and archive signatures using CryptoKit and only the public key. It does not need Keychain access for verification. Update source, key, strict signature requirements, disabled system profiling, and manual installation defaults are recorded in the shipped Info.plist. See [Releasing updates](RELEASING.md).
 
+For 1.5.1, the unchanged official 1.5.0 app discovered the patch and displayed the correct clean-start release notes through the native updater. The check was closed without skipping the version and the QA app was quit. Both released assets were anonymously downloaded; archive/feed signatures and the extracted bundle signature verify. Full install/relaunch coverage remains recorded above for 1.5.0.
+
 Start/pause and sound shortcuts have been checked with app-targeted key events. Carbon global registration succeeds without requesting Accessibility access. Physical keyboard dispatch while another app is active still needs device testing. The menu controls remain available if a shortcut conflicts.
 
 ## Remaining checks and limitations
