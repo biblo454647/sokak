@@ -44,7 +44,7 @@ struct MenuView: View {
                     eyebrow("YOUR VIEW")
                     Picker("Backdrop", selection: $model.preferences.backdrop) {
                         Text("Over my windows").tag(Backdrop.desktop)
-                        Text("An Istanbul street").tag(Backdrop.istanbul)
+                        Text("A street somewhere").tag(Backdrop.istanbul)
                     }.pickerStyle(.segmented).labelsHidden()
                     if model.preferences.backdrop == .istanbul {
                         Button { model.libraryVisible = true } label: {
@@ -59,7 +59,7 @@ struct MenuView: View {
                                 Spacer()
                                 Image(systemName: "square.grid.2x2").foregroundStyle(sea)
                             }.padding(9).background(Color.white.opacity(0.045)).cornerRadius(10)
-                        }.buttonStyle(.plain).accessibilityLabel("Choose Istanbul photograph")
+                        }.buttonStyle(.plain).accessibilityLabel("Choose street photograph")
                     } else {
                         Text("Weather floats above your work. Click and type as usual.")
                             .font(.system(size: 10)).foregroundStyle(pearl.opacity(0.5))
@@ -184,8 +184,8 @@ struct MenuView: View {
                 Button { model.importPhoto() } label: { Label("Your photo", systemImage: "plus") }.buttonStyle(.plain)
             }.font(.system(size: 12)).foregroundStyle(sea)
             VStack(alignment: .leading, spacing: 5) {
-                Text("Somewhere familiar.").font(.system(size: 26, weight: .regular, design: .serif))
-                Text("Real Istanbul photographs, kept here offline.").font(.system(size: 11)).foregroundStyle(pearl.opacity(0.6))
+                Text("Somewhere to slow down.").font(.system(size: 26, weight: .regular, design: .serif))
+                Text("İstanbul & beyond. Real streets, available offline.").font(.system(size: 11)).foregroundStyle(pearl.opacity(0.6))
             }
             Picker("Photograph weather", selection: $model.sceneFilter) {
                 Text("For \(model.preferences.weather.title.lowercased())").tag(SceneFilter.weather)
@@ -236,11 +236,11 @@ struct MenuView: View {
 
     private var footer: some View {
         HStack {
-            Text("İSTANBUL, AT YOUR PACE").font(.system(size: 8, weight: .medium)).tracking(1.25).foregroundStyle(pearl.opacity(0.35))
+            Text("THE WORLD, AT YOUR PACE").font(.system(size: 8, weight: .medium)).tracking(1.25).foregroundStyle(pearl.opacity(0.35))
             Spacer()
             UpdateButton(updater: model.updater) { model.closePopover?(); model.stop() }
             Menu {
-                Button("Browse Istanbul photographs") { model.libraryVisible = true }
+                Button("Browse street photographs") { model.libraryVisible = true }
                 Button("Add your own photograph…") { model.importPhoto() }
                 Button("Photograph credits") { NSWorkspace.shared.open(Assets.root.appendingPathComponent("PHOTO-CREDITS.md")) }
                 Button("Help & installation") { NSWorkspace.shared.open(Assets.root.appendingPathComponent("HELP.html")) }

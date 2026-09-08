@@ -1,0 +1,257 @@
+[
+  {
+    "id": "galata-rain",
+    "title": "Galata Köprüsü",
+    "subtitle": "İstanbul · Rain, taxis & the lights across the water",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Rainy night Galata Bridge area Istanbul 2026.jpg"
+  },
+  {
+    "id": "paris-turenne",
+    "title": "Paris",
+    "subtitle": "Le Marais · Rain on rue de Turenne",
+    "city": "Paris",
+    "country": "France",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Rainy night, rue de Turenne, Paris March 2020.jpg"
+  },
+  {
+    "id": "kyoto-pontocho",
+    "title": "Kyoto",
+    "subtitle": "Pontochō · Lanterns after rain",
+    "city": "Kyoto",
+    "country": "Japan",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Nightview of Pontocho in Kyoto, Japan 20170408131402 (34291538511).jpg"
+  },
+  {
+    "id": "edinburgh-castle",
+    "title": "Edinburgh",
+    "subtitle": "Castle Street · A wet afternoon",
+    "city": "Edinburgh",
+    "country": "United Kingdom",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Castle Street, Edinburgh - geograph.org.uk - 2880307.jpg"
+  },
+  {
+    "id": "amsterdam-plantage",
+    "title": "Amsterdam",
+    "subtitle": "Plantage · Autumn rain",
+    "city": "Amsterdam",
+    "country": "Netherlands",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Free photo of Amsterdam picture of the Plantage Middenlaan with light rain, in Fall', The Netherlands (31160452445).png"
+  },
+  {
+    "id": "ayasofya-rain",
+    "title": "Ayasofya",
+    "subtitle": "İstanbul · Lamplight on a rainy evening",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Istanbul, Turkey (November 2023) - 041.jpg"
+  },
+  {
+    "id": "tokyo-shinjuku",
+    "title": "Tokyo",
+    "subtitle": "Shinjuku · Rain and neon",
+    "city": "Tokyo",
+    "country": "Japan",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Uniqlo - Tokyo (17597234074).jpg"
+  },
+  {
+    "id": "paris-boisseau",
+    "title": "Paris",
+    "subtitle": "Rue Guérin-Boisseau · A quiet lane",
+    "city": "Paris",
+    "country": "France",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Rue Boisseau Paris 1.jpg"
+  },
+  {
+    "id": "bergen-skansen",
+    "title": "Bergen",
+    "subtitle": "Skansen · Reflections at night",
+    "city": "Bergen",
+    "country": "Norway",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Bergen - Skansedammen og Skansen brannstasjon.jpg"
+  },
+  {
+    "id": "goztepe-day-rain",
+    "title": "Göztepe",
+    "subtitle": "İstanbul · Rain beneath the trees",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Rain - panoramio (5).jpg"
+  },
+  {
+    "id": "tokyo-bike-rain",
+    "title": "Tokyo",
+    "subtitle": "A bicycle in the rain",
+    "city": "Tokyo",
+    "country": "Japan",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Bike in the Rain (Unsplash).jpg"
+  },
+  {
+    "id": "courtyard-rain",
+    "title": "İstanbul",
+    "subtitle": "İstanbul · A quiet courtyard after dark",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Rainy mosque courtyard at night Istanbul 2026.jpg"
+  },
+  {
+    "id": "goztepe-rain",
+    "title": "Göztepe",
+    "subtitle": "İstanbul · A rainy neighbourhood street",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "rain",
+      "mist"
+    ],
+    "source": "File:Another Rainy Day - panoramio.jpg"
+  },
+  {
+    "id": "bagcilar-evening",
+    "title": "Bağcılar",
+    "subtitle": "İstanbul · A snowy evening",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:A snowy evening in Bağcılar, Istanbul.jpg"
+  },
+  {
+    "id": "prague-old-town",
+    "title": "Prague",
+    "subtitle": "Old Town Square · Fresh snow",
+    "city": "Prague",
+    "country": "Czechia",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:20190203 OldTown@Praha 2944 (47388021632).jpg"
+  },
+  {
+    "id": "quebec-snow",
+    "title": "Québec City",
+    "subtitle": "A snowy neighbourhood street",
+    "city": "Québec City",
+    "country": "Canada",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Snowy residential street in Quebec City 3.jpg"
+  },
+  {
+    "id": "istiklal-snow",
+    "title": "İstiklal Caddesi",
+    "subtitle": "İstanbul · Snow on the avenue",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Istanbul photos by J.Lubbock 2015 471.jpg"
+  },
+  {
+    "id": "strasbourg-snow",
+    "title": "Strasbourg",
+    "subtitle": "Saint-Paul · Snow beside the river",
+    "city": "Strasbourg",
+    "country": "France",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Église Saint-Paul de Strasbourg sous la Neige - panoramio.jpg"
+  },
+  {
+    "id": "tallinn-snow",
+    "title": "Tallinn",
+    "subtitle": "Läänemere tee · Frosted trees",
+    "city": "Tallinn",
+    "country": "Estonia",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Tallinn Läänemere tee in winter.jpg"
+  },
+  {
+    "id": "bern-snow",
+    "title": "Bern",
+    "subtitle": "Pauluskirche · Snow-covered trees",
+    "city": "Bern",
+    "country": "Switzerland",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Pauluskirche in Bern im Winter.JPG"
+  },
+  {
+    "id": "sultanahmet-snow",
+    "title": "Sultanahmet",
+    "subtitle": "İstanbul · The Blue Mosque in snow",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "snow"
+    ],
+    "source": "File:Blue Mosque. Snow.jpg"
+  },
+  {
+    "id": "bosphorus-clouds",
+    "title": "Boğaziçi",
+    "subtitle": "İstanbul · A grey day on the water",
+    "city": "İstanbul",
+    "country": "Türkiye",
+    "conditions": [
+      "mist"
+    ],
+    "source": "File:Bosphorus, Istanbul (P1100253).jpg"
+  }
+]

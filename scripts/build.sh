@@ -12,6 +12,9 @@ for ARCH in arm64 x86_64; do
         -F .build/Sparkle -framework Sparkle -Xlinker -rpath -Xlinker @executable_path/../Frameworks Sources/*.swift -o ".build/Sokak-$ARCH"
 done
 lipo -create .build/Sokak-arm64 .build/Sokak-x86_64 -output "$APP/Contents/MacOS/Sokak"
+# Retired bundled photographs must not survive an incremental build.
+# This directory belongs only to the generated app, never to personal imports.
+rsync -a --delete Resources/Scenes/ "$APP/Contents/Resources/Scenes/"
 cp -R Resources/. "$APP/Contents/Resources/"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"

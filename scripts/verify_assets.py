@@ -5,18 +5,25 @@ import json
 from pathlib import Path
 import plistlib
 import subprocess
-from fetch_scenes import SCENES
+from fetch_scenes import SCENES, reusable_license
 
 root = Path(__file__).resolve().parents[1]
 scenes = json.loads((root / 'Resources/scenes.json').read_text())
-assert {s['id'] for s in scenes} == {s[0] for s in SCENES}
+assert {s['id'] for s in scenes} == {s['id'] for s in SCENES}
 assert len({s['id'] for s in scenes}) == len(scenes)
-assert {s['id'] for s in scenes if 'rain' in s['conditions']} == {'galata-rain', 'ayasofya-rain', 'courtyard-rain', 'bosphorus-clouds', 'goztepe-rain'}
-assert sum(s['winter'] for s in scenes) >= 5
+catalogue = {s['id']: s for s in SCENES}
+assert sum(s['winter'] for s in scenes) >= 6
+assert len({s['city'] for s in scenes if 'rain' in s['conditions']}) >= 6
+assert len({s['city'] for s in scenes if s['winter']}) >= 4
+assert {p.name for p in (root / 'Resources/Scenes').iterdir() if not p.name.startswith('.')} == {s['filename'] for s in scenes}
 for scene in scenes:
+    curated = catalogue[scene['id']]
+    assert scene['conditions'] == curated['conditions'] and scene['conditions']
+    assert scene['winter'] == ('snow' in scene['conditions'])
+    assert scene['city'] == curated['city'] and scene['country'] == curated['country']
     assert scene['sourceURL'].startswith('https://commons.wikimedia.org/wiki/File:')
-    assert scene['licenseURL'].startswith('https://creativecommons.org/licenses/')
-    assert scene['license'].startswith('CC BY') and scene['author']
+    assert scene['licenseURL'].startswith(('https://creativecommons.org/licenses/', 'https://creativecommons.org/publicdomain/zero/'))
+    assert reusable_license(scene['license']) and scene['author']
     assert Path(scene['filename']).name == scene['filename']
     path = root / 'Resources/Scenes' / scene['filename']
     assert hashlib.sha256(path.read_bytes()).hexdigest() == scene['sha256'], path.name

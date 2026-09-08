@@ -2,7 +2,7 @@
 
 A little weather. A little home.
 
-Sokak is a native macOS menu bar app for a quiet moment beneath rainy glass: drops approach the pane, tap it, spread briefly and leave water behind. Snow drifts at different depths outside a softly frosted window. Keep working through a transparent overlay, or sit with a real Istanbul street photograph and soft stereo ambience.
+Sokak is a native macOS menu bar app for a quiet moment beneath rainy glass: drops approach the pane, tap it, spread briefly and leave water behind. Snow drifts at different depths outside a softly frosted window. Keep working through a transparent overlay, or sit with a real street photograph from İstanbul and around the world and soft stereo ambience.
 
 ![A beam wiper gathers water and clears the glass while rain continues over Galata](docs/wiper-window.gif)
 
@@ -12,11 +12,24 @@ Wiper preview: actual renderer output over Furkan Akkurt's [rainy Galata Bridge 
 
 Snow preview: actual renderer output over Maurice Flesier's [Bağcılar photograph](https://commons.wikimedia.org/wiki/File:A_snowy_evening_in_Ba%C4%9Fc%C4%B1lar,_Istanbul.jpg). Cropping, dimming, frost and weather added; this adaptation is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The GIFs are silent. The rain MP4 on the release page includes the new contact sounds.
 
+## Streets for the weather
+
+![Rain and snow over İstanbul, Paris, Kyoto, Prague and Québec City](docs/world-streets.jpg)
+
+Actual app renderer frames. [Photographers, sources and tile licenses](docs/WORLD-GALLERY-CREDITS.md).
+
+22 original high-resolution photographs from 12 cities, available offline. The library includes 13 wet-street and rainy-night views, eight snowy views and one grey Bosphorus view for mist. Sunny photographs have been retired.
+
+- **Rain:** İstanbul, Paris, Kyoto, Tokyo, Edinburgh, Amsterdam and Bergen.
+- **Snow:** İstanbul, Prague, Québec City, Strasbourg, Tallinn and Bern.
+
+Photographs were selected for wet reflections, overcast or night light, snow cover and useful wide-screen framing. Original files are preserved, from 2560 pixels wide up to 7952 × 5304. These are still photographs with Sokak’s animated weather; brightness and sharpness remain adjustable. Authors, source pages and individual licenses are in [Photograph credits](Resources/PHOTO-CREDITS.md).
+
 ## Get the app
 
 **[Download Sokak for Mac](https://github.com/biblo454647/sokak/releases/latest)** · **[Browse the source](https://github.com/biblo454647/sokak)** · **[Report an issue](https://github.com/biblo454647/sokak/issues)**
 
-Download **Sokak-1.5.2-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
+Download **Sokak-1.6.0-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
 
 **Already using 1.2 or earlier?** Install the current version once from the ZIP; those older versions do not have an updater. From 1.3 onward, click **Updates** at the bottom of the menu, then **Install Update → Install and Relaunch**. Your settings and imported photographs are preserved. Optional automatic checks are in **A few little details**; installation always stays your choice. Updates come from this repository's GitHub Releases through a signed feed and signed archives. No GitHub sign-in is needed. Keep the app in a writable Applications folder, rather than running from the ZIP or a read-only disk image.
 
@@ -27,14 +40,14 @@ Download **Sokak-1.5.2-universal.zip** from the release page. Unzip it and move 
 ## Use it
 
 - Click the little cloud in the top-right menu bar. Choose **Rain**, **Snow**, or **Mist**, then **Let the weather in**.
-- **Over my windows** leaves the screen interactive. **An Istanbul street** covers the selected display with a photograph and catches mouse clicks; press **Escape** to leave it.
+- **Over my windows** leaves the screen interactive. **A street somewhere** covers the selected display with a photograph and catches mouse clicks; press **Escape** to leave it.
 - Tune intensity, wind, sound, volume, dimming, display selection, and a 15/30/60/120-minute timer. Rain intensity controls how often drops strike the glass. Their size and approach speed keep the same distribution at every intensity. Existing water stays on the pane when rain is turned down.
 - **Window glass** is on by default. Rain is viewed almost end-on, like looking up through a shallow roof window. A drop approaches its contact point, briefly spreads into an irregular wet patch, recoils and leaves a bead, sometimes with a few tiny satellite beads. Water joins nearby beads and slowly drains. Snow keeps its distant flakes, soft close flakes, occasional pane contact and light edge frost.
 - **Rain starts on clean glass.** Each session begins dry; water builds up only as drops arrive. Beads stay instead of disappearing on a timer. Small drops stay pinned, while merged, heavier water can slide off the lower edge. More rain adds more water; changing intensity keeps what is already there.
 - **Wipe when you want.** Press **⌃⌥⌘W** for one smooth out-and-back sweep. A graphite beam wiper gathers water at its leading edge and carries it offscreen; rain continues throughout. Choose your own combination under **A few little details → Wiper shortcut** by clicking the shortcut and pressing the new keys. Include Command or Control; Escape cancels. Conflicts preserve the previous choice. **Wipe glass** is also available there while rain and Window glass are running. Repeated presses do not restart a moving blade.
 - **Softness** adds a little softness to the photograph while keeping the street recognizable. Slide toward **Clear** for a sharp view. Turn Window glass off under **A few little details** for approaching rain without contact, collected water or close tap sounds.
 - Photograph mode bends the street through each water bead. Desktop mode shows droplets, trails, and highlights over your work; it cannot bend other apps' pixels because Sokak never captures the screen.
-- The library opens with photographs suitable for the selected weather. Rain uses wet streets or overcast views; snow uses real winter photographs. **All streets** includes sunny images. Explicitly choosing an incompatible photo turns automatic matching off, so your choice stays put; switch matching back on in Details whenever you want. Import your own JPEG, PNG, HEIC, or TIFF to add a personal view.
+- The library opens with photographs suitable for the selected weather. Rain uses wet streets or overcast views; snow uses real winter photographs. **All streets** shows the complete rainy, snowy and mist collection. Explicitly choosing an incompatible photo turns automatic matching off, so your choice stays put; switch matching back on in Details whenever you want. Import your own JPEG, PNG, HEIC, or TIFF to add a personal view.
 - **⌃⌥⌘S** toggles the session; **⌃⌥⌘M** toggles sound. Right-clicking the menu-bar cloud also toggles the session. A shortcut conflict is reported in the menu; the menu controls always remain available.
 - **Current display** means the display containing the pointer when the session starts; it stays there until the session is stopped. An explicit display or all displays can also be selected.
 - Low power uses 30 fps; standard uses 60 fps. macOS Low Power Mode also selects 30 fps. Reduce Motion makes the weather slower and less dense.
@@ -42,9 +55,7 @@ Download **Sokak-1.5.2-universal.zip** from the release page. Unzip it and move 
 
 The app always launches paused. The timer fades sound out and removes the overlay. Open the **…** menu to quit.
 
-## The streets
-
-Fifteen original photographs are bundled offline, from 2,560 × 1,920 up to 6,016 × 4,000 pixels. New in 1.3: Galata Bridge on a rainy night, Ayasofya in the rain, a quiet wet courtyard, and a grey day on the Bosphorus. The library also includes Balat, İstiklal in snowfall, Sultanahmet in snow, Bağcılar, Bahçelievler and Göztepe. There is no artificial upscaling. These are still photographs, not live cameras or AI reconstructions. Sunny photographs remain available in All streets, but are excluded from automatic rain matching.
+## Photographs and audio
 
 Photographers, source links, exact resolutions, file hashes, and licenses are recorded in [scenes.json](Resources/scenes.json) and [Photograph Credits](Resources/PHOTO-CREDITS.md). Originals remain unchanged; cropping, dimming, defocus, refraction and weather are applied at display time. CC BY-SA photographs and any distributed adaptations retain their respective licenses.
 
@@ -80,7 +91,7 @@ The build cross-compiles `arm64` and `x86_64`, combines them, creates the app ic
 
 Append `--motion-preview` to export ten-second rain and snow MP4s and a synchronized `rain-preview.wav`. Surface-water tests check approach/contact timing, spreading, water volume, contact events, intensity-independent geometry, live contact frequency, slow drainage, pause recovery, bounded counts and equivalent simulation at 30/60 fps. Image checks cover PNG/JPEG colours, retained detail, Retina rendering, and the local spread/recoil footprint. Existing preferences are preserved; sunny automatic rain selections migrate to a suitable photograph. See [Rain design](docs/RAIN-DESIGN.md) for the roof-glass model and its visual assumptions.
 
-Photo regeneration uses the Python standard library: `python3 scripts/fetch_scenes.py`. Audio regeneration additionally requires NumPy and FFmpeg: `python3 scripts/make_audio.py`; use `--only rain` to rebuild just the rain bed. Glass taps are synthesized by the app. Optional release previews use `bash scripts/make_previews.sh docs/qa` after the motion self-test. All photographs and ambience beds are committed; only the first Sparkle dependency fetch needs Internet access for a normal build.
+The curated locations and weather conditions live in `scripts/scene_catalog.json`. Photo regeneration uses the Python standard library: `python3 scripts/fetch_scenes.py`. Audio regeneration additionally requires NumPy and FFmpeg: `python3 scripts/make_audio.py`; use `--only rain` to rebuild just the rain bed. Glass taps are synthesized by the app. Optional release previews use `bash scripts/make_previews.sh docs/qa` after the motion self-test. All photographs and ambience beds are committed; only the first Sparkle dependency fetch needs Internet access for a normal build.
 
 For Developer ID distribution, sign the app and nested Sparkle components with your Developer ID identity, remove the ad-hoc-only library-validation exception, notarize, staple and verify before packaging. The current ad-hoc build needs that per-app exception to load the upstream-signed Sparkle framework because it has no matching Team ID. It does not change system security settings. No private signing material is included in this repository.
 

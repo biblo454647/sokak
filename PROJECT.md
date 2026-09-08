@@ -1,7 +1,7 @@
 # Sokak
 
-- Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and an Istanbul photograph library.
-- Current release: 1.5.2. The wiper advances every display frame, briefly uses the display refresh rate up to 120 Hz even in Low power, and has a short shutter blur on the moving hardware. Still backgrounds are cached. The menu keeps a fixed size and anchor while switching weather. Clean rain starts, persistent water, configurable shortcuts, snow and signed updates remain available.
+- Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and a weather-matched photograph library from İstanbul and around the world.
+- Current release: 1.6.0. The offline library now contains 22 original photographs from 12 cities: 13 rainy views, eight snowy views and one mist view. Sunny and repetitive views are retired. Rain, snow, clean starts, persistent water, the smooth wiper, stable menu, shortcuts and signed updates retain their existing behavior.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak
@@ -13,7 +13,7 @@
 - Signing: current releases are ad-hoc signed and unnotarized. The app includes an ad-hoc library-validation exception for the bundled, upstream-signed Sparkle framework. Update feeds and archives have separate Ed25519 signatures; private keys are kept outside the repository in macOS Keychain.
 - Run: open `dist/Sokak.app`; click the menu-bar cloud.
 - Build: `bash scripts/build.sh` using Apple Command Line Tools and a recent Swift compiler.
-- Test: compile and run the core, glass, snow, wiper and shortcut checks under `Tests`, run the app with `--self-test docs/qa --motion-preview`, then `python3 scripts/verify_assets.py`. Close other Sokak copies for the native shortcut-registration test. See [Validation](docs/VALIDATION.md) for exact commands and device coverage.
+- Test: compile and run the core, glass, snow, wiper and shortcut checks under `Tests`, run the app with `--self-test docs/qa --gallery-preview`, then `python3 scripts/verify_assets.py`. Close other Sokak copies for the native shortcut-registration test. See [Validation](docs/VALIDATION.md) for exact commands and device coverage.
 - Release: build and validate reviewed source, generate the signed feed with `bash scripts/make_appcast.sh`, then publish the matching ZIP and SHA-256 to GitHub Releases before publishing `appcast.xml`. Download and verify the assets and signed feed. See `docs/RELEASING.md`.
 - Hosted services: public GitHub Releases and a signed appcast served from this repository. Cloudflare resources: none.
 - Scheduled tasks / LaunchAgents / login items: none. Optional daily update checks run only inside the app; off by default.

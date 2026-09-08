@@ -4,7 +4,7 @@ Sokak's source code, app icon, documentation (except the photograph preview), an
 
 ## Photographs
 
-The fifteen bundled photographs are separate works. They are **not covered by Sokak's MIT license**. Each retains its original Creative Commons Attribution-ShareAlike license, author attribution, and source link. Original image files are bundled unchanged.
+The 22 bundled photographs are separate works. They are **not covered by Sokak's MIT license**. Each retains its individual Creative Commons Attribution, Attribution-ShareAlike or CC0 terms, author attribution, and source link. Original image files are bundled unchanged.
 
 See [Photograph Credits](https://github.com/biblo454647/sokak/blob/main/Resources/PHOTO-CREDITS.md) and [the asset manifest](https://github.com/biblo454647/sokak/blob/main/Resources/scenes.json) for each image's author, exact license, resolution, original URL, and checksum. Both files are also bundled offline as `PHOTO-CREDITS.md` and `scenes.json` inside the app's Resources folder. Distributed adaptations of these photographs retain their applicable ShareAlike licenses.
 

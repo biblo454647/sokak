@@ -80,7 +80,15 @@ enum QualityCheck {
         }
         for scene in model.scenes {
             guard FileManager.default.fileExists(atPath: Assets.url(for: scene).path), Assets.thumbnail(scene, maxSize: 80) != nil else { throw CocoaError(.fileReadCorruptFile) }
+            if CommandLine.arguments.contains("--gallery-preview") {
+                let photo = try gpu.loadPhoto(Assets.url(for: scene))
+                let weather: Weather = scene.winter ? .snow : scene.suits(.rain) ? .rain : .mist
+                let frame = try render(gpu: gpu, weather: weather, photo: photo, time: 13.7,
+                                       output: output.appendingPathComponent("gallery-\(scene.id).png"))
+                guard frame.nonzeroAlpha == 1440 * 900 else { throw CocoaError(.coderInvalidValue) }
+            }
         }
+        if CommandLine.arguments.contains("--gallery-preview") { report["galleryRenderedScenes"] = model.scenes.count }
         var audio: [[String: Any]] = []
         for weather in Weather.allCases {
             let url = Assets.root.appendingPathComponent("Audio/\(weather.rawValue).m4a")

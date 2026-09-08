@@ -19,7 +19,7 @@ swiftc -O -swift-version 5 Sources/Core.swift Sources/Wiper.swift Sources/GlassS
 swiftc -O -swift-version 5 Sources/Core.swift Sources/Shortcuts.swift Tests/ShortcutTests.swift -o .build/shortcut-tests
 .build/shortcut-tests
 python3 scripts/verify_assets.py
-dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa --motion-preview
+dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa --motion-preview --gallery-preview
 codesign --verify --deep --strict --verbose=2 dist/Sokak.app
 lipo -archs dist/Sokak.app/Contents/MacOS/Sokak
 ```
@@ -32,7 +32,7 @@ Run the native shortcut test with other Sokak copies closed. It temporarily regi
 
 - Universal release compilation targets `arm64-apple-macosx13.0` and `x86_64-apple-macosx13.0`; `lipo` checks the packaged architectures.
 - The ad-hoc hardened-runtime signature is verified for bundle integrity. This does not establish Developer ID identity or Apple notarization.
-- All fifteen original photograph hashes and dimensions match the manifest. Six are winter photographs; five are explicitly suitable for rain. Each has author, source, and license links.
+- All 22 original photograph hashes and dimensions match the manifest. Eight are snowy photographs, 13 are explicitly suitable for rain, and one is a mist-only view. Each has author, source, and license links.
 - All three 46-second stereo ambience files decode and prepare for playback.
 - Core tests cover timer expiry and cancellation, rounding, no-timer sessions, corrupted preferences, nonfinite and out-of-range settings, persistence, display and timer validation, and weather-aware matching. Sunny rain selections migrate to Galata; suitable explicit choices remain selected.
 - Migration checks preserve existing preferences, supply defaults for the glass and focus controls, and preserve an explicitly disabled glass setting.
@@ -53,6 +53,12 @@ Run the native shortcut test with other Sokak copies closed. It temporarily regi
 - Native SwiftUI menu and library snapshots are rendered for visual inspection.
 
 Photograph upload and test readback textures use Metal's hardware-appropriate default storage mode. Managed textures are synchronized before CPU readback in the test renderer. The reusable exterior render target uses GPU-private storage with render-target and shader-read usage. The pane samples that app-owned target in a second render pass. See [Apple's storage-mode documentation](https://developer.apple.com/documentation/metal/setting-resource-storage-modes).
+
+## Gallery refresh in 1.6.0
+
+The packaged app renders all 22 curated photographs at 1440 × 900 through the actual Metal pipeline with their matching weather. Each frame is fully opaque; all frames and the native menu/library snapshots were visually reviewed for colour, detail, wide-screen framing and weather suitability. The catalogue spans 12 cities in 10 countries: 13 rainy views, eight snowy views and one mist-only view. Original file hashes, source licenses and dimensions verify. The generated app contains exactly the current catalogue, with no retired photographs left by incremental builds. Core migration, glass, snow, wiper and native shortcut-registration checks pass. Effects and update code are unchanged from 1.5.2.
+
+Reproduce the gallery frames with `dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa --gallery-preview`. The public gallery overview uses six of these actual renderer frames; its individual photo licenses are listed in [World gallery credits](WORLD-GALLERY-CREDITS.md).
 
 ## Native interaction coverage
 

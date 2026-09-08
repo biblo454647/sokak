@@ -49,7 +49,10 @@ import Foundation
 
         let data = try Data(contentsOf: URL(fileURLWithPath: "Resources/scenes.json"))
         let scenes = try JSONDecoder().decode([StreetScene].self, from: data)
-        let summer = scenes.first { $0.id == "balat" }!
+        // A retired sunny scene still represents preferences from older releases.
+        let summer = StreetScene(id: "balat", title: "Legacy sunny scene", subtitle: "", winter: false,
+                                 filename: "retired.jpg", width: 3000, height: 2000, author: "Fixture",
+                                 license: "CC0", licenseURL: "", sourceURL: "", conditions: [])
         let winter = scenes.first { $0.winter }!
         let selected = StreetScene.matching(.snow, current: summer, scenes: scenes)
         precondition(scenes.first { $0.id == selected }!.winter)
