@@ -219,7 +219,10 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private let gentle = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var onError: ((String) -> Void)?
     var onRainContacts: (([RainContact]) -> Void)?
+    var onWiperStart: (() -> Void)?
     private var hasReportedError = false
+    private var pendingWipe = false
+    func wipeGlass() { if preferences.weather == .rain && preferences.windowGlass { pendingWipe = true } }
 
     init(gpu: WeatherGPU, preferences: Preferences) {
         self.gpu = gpu
@@ -228,6 +231,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     }
     func configure(_ preferences: Preferences, photoURL: URL?) throws {
         self.preferences = preferences
+        if preferences.weather != .rain || !preferences.windowGlass { surface.cancelWipe(); pendingWipe = false }
         if self.photoURL != photoURL {
             photo = try photoURL.map(gpu.loadPhoto)
             self.photoURL = photoURL
@@ -245,6 +249,8 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
                            intensity: Float(preferences.intensity), wind: Float(preferences.wind), gentle: gentle)
         }
         lastFrame = now
+        let beganWipe = pendingWipe && surface.wipe()
+        pendingWipe = false
         let u = WeatherUniforms(size: SIMD2(Float(view.bounds.width), Float(view.bounds.height)),
                                 time: Float(CACurrentMediaTime() - start) + weatherOffset, weather: preferences.weather.index,
                                 intensity: Float(preferences.intensity), wind: Float(preferences.wind),
@@ -271,6 +277,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
             }
         }
         command.commit()
+        if beganWipe { onWiperStart?() }
         if preferences.weather == .rain && preferences.windowGlass && !surface.frameContacts.isEmpty {
             onRainContacts?(surface.frameContacts)
         }
@@ -289,12 +296,14 @@ final class WeatherWindow: NSWindow {
 
 final class OverlayController {
     var onRainContacts: (([RainContact]) -> Void)?
+    var onWiperStart: (() -> Void)?
     private let model: AppModel
     private var gpu: WeatherGPU?
     private var windows: [(WeatherWindow, MTKView, WeatherRenderer)] = []
     private var signature = ""
     private var currentScreenID: String?
     private var observers: [NSObjectProtocol] = []
+    func wipeGlass() { windows.forEach { $0.2.wipeGlass() } }
 
     init(model: AppModel) {
         self.model = model
@@ -363,6 +372,7 @@ final class OverlayController {
                         // Sound follows one display, so multi-monitor sessions do
                         // not multiply the same ambient gain or contact frequency.
                         renderer.onRainContacts = { [weak self] hits in self?.onRainContacts?(hits) }
+                        renderer.onWiperStart = { [weak self] in self?.onWiperStart?() }
                     }
                     view.delegate = renderer
                     window.contentView = view

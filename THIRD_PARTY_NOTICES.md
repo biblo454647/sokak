@@ -14,6 +14,10 @@ Starting in 1.3, `docs/rain-window.gif` and the release's `rain-window.mp4` adap
 
 The motion previews in `docs/snow-window.gif` and the release's `snow-window.mp4` adapt Maurice Flesier's Bağcılar photograph linked above with cropping, dimming, frost and animated snow. These adaptations are [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The 1.4 rain MP4 includes original synthesized ambience and contact sounds (MIT); its adapted photograph/video retains CC BY-SA 4.0. GIFs and the snow MP4 are silent. The original source photographs remain unchanged in the app.
 
+## Wiper preview
+
+The 1.5 `docs/wiper-window.gif` and release `wiper-window.mp4` use the same Furkan Akkurt Galata photograph credited above, with cropping, dimming, softness, refraction, persistent rainwater and a procedurally drawn wiper. These adapted visuals retain CC BY-SA 4.0. The video's original synthesized rain and wet-rubber audio is MIT. The wiper geometry and shaders are original code; no purchased model, texture or sound library is included.
+
 ## Platform components
 
 Sokak uses Apple system frameworks supplied with macOS, subject to Apple's applicable licenses.

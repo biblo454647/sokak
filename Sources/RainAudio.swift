@@ -1,6 +1,34 @@
 import Foundation
 import AVFoundation
 
+/// Original quiet wet-rubber strokes, following the blade's travel and reversal.
+enum WiperSound {
+    static func samples() -> [Float] {
+        let count = Int(WiperMotion.duration * Float(RainTapSound.sampleRate))
+        var result = [Float](repeating: 0, count: count * 2)
+        var state: UInt64 = 39271
+        var low: Float = 0, slow: Float = 0
+        for i in 0..<count {
+            let t = Float(i) / Float(RainTapSound.sampleRate)
+            let returning = t > WiperMotion.outward + WiperMotion.turn
+            let phase = returning ? (t - WiperMotion.outward - WiperMotion.turn) / (WiperMotion.duration - WiperMotion.outward - WiperMotion.turn) : t / WiperMotion.outward
+            guard phase >= 0 && phase <= 1 else { continue }
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            let noise = Float((state >> 40) & 0xffffff) / Float(0x800000) - 1
+            low += (noise - low) * 0.19; slow += (noise - slow) * 0.022
+            let velocity = pow(max(0, sin(phase * .pi)), 0.85)
+            let value = ((low - slow) * 0.86 + sin(t * 2 * .pi * 92) * 0.022) * velocity * (returning ? 0.86 : 1)
+            let pan = (returning ? 1 : -1) * cos(phase * .pi) * 0.55
+            result[i * 2] = value * sqrt((1 - pan) * 0.5)
+            result[i * 2 + 1] = value * sqrt((1 + pan) * 0.5)
+        }
+        let peak = max(0.001, result.map(abs).max() ?? 1)
+        result = result.map { $0 * 0.18 / peak }
+        result[0] = 0; result[1] = 0; result[count * 2 - 2] = 0; result[count * 2 - 1] = 0
+        return result
+    }
+}
+
 /// Original short, damped water-on-glass sounds; no microphone or audio engine.
 enum RainTapSound {
     static let sampleRate = 44100

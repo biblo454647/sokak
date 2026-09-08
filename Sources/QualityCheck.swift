@@ -24,6 +24,17 @@ enum QualityCheck {
         model.preferences = saved
         model.onChange = nil
         report["publishedSettingsRecovery"] = "passed"
+        var wipes = 0
+        model.onWipe = { wipes += 1 }
+        model.preferences.weather = .rain; model.preferences.windowGlass = true
+        model.wipeGlass()
+        guard wipes == 0 else { throw CocoaError(.coderInvalidValue) }
+        model.start(); model.wipeGlass()
+        model.preferences.windowGlass = false; model.wipeGlass()
+        model.preferences.windowGlass = true; model.preferences.weather = .snow; model.wipeGlass()
+        model.stop(); model.onWipe = nil; model.preferences = saved
+        guard wipes == 1 else { throw CocoaError(.coderInvalidValue) }
+        report["wiperControls"] = "Enabled only for a running rain session with glass"
         // Check the RGBX-JPEG/texture conversion with an unambiguous red image.
         let colorImage = NSImage(size: NSSize(width: 16, height: 16))
         colorImage.lockFocus(); NSColor.red.setFill(); NSRect(x: 0, y: 0, width: 16, height: 16).fill(); colorImage.unlockFocus()
@@ -89,13 +100,20 @@ enum QualityCheck {
         }
         tapPlayer.stop()
         report["contactAudio"] = "16 decodable original tap variants; bounded peaks; zero-gain contacts remain silent"
+        let swish = WiperSound.samples()
+        guard swish.allSatisfy(\.isFinite), (swish.map(abs).max() ?? 1) <= 0.181,
+              swish.prefix(2).allSatisfy({ $0 == 0 }), swish.suffix(2).allSatisfy({ $0 == 0 }) else { throw CocoaError(.coderInvalidValue) }
+        let wiperAudio = try AVAudioPlayer(data: RainTapSound.wave(samples: swish, channels: 2))
+        guard wiperAudio.prepareToPlay(), wiperAudio.numberOfChannels == 2,
+              abs(wiperAudio.duration - Double(WiperMotion.duration)) < 0.001 else { throw CocoaError(.fileReadCorruptFile) }
+        report["wiperAudio"] = "Bounded stereo rubber strokes match the 2.35-second sweep; silent endpoints"
         model.preferences.backdrop = .istanbul
         try snapshotUI(model: model, output: output.appendingPathComponent("menu.png"))
         model.libraryVisible = true
         try snapshotUI(model: model, output: output.appendingPathComponent("library.png"))
         if CommandLine.arguments.contains("--motion-preview") {
             try motionPreviews(gpu: gpu, model: model, output: output)
-            report["motionPreviews"] = ["rain-window.mp4", "rain-preview.wav", "snow-window.mp4"]
+            report["motionPreviews"] = ["rain-window.mp4", "rain-preview.wav", "snow-window.mp4", "wiper-window.mp4", "wiper-preview.wav"]
         }
         report["result"] = "passed"
         let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
@@ -252,10 +270,10 @@ enum QualityCheck {
 
     private static func motionPreviews(gpu: WeatherGPU, model: AppModel, output: URL) throws {
         let width = 960, height = 600
-        for weather in [Weather.rain, .snow] {
+        for (weather, name, wiping) in [(Weather.rain, "rain", false), (.snow, "snow", false), (.rain, "wiper", true)] {
             let scene = model.scenes.first { $0.id == (weather == .rain ? "galata-rain" : "bagcilar-evening") }!
             let photo = try gpu.loadPhoto(Assets.url(for: scene))
-            let url = output.appendingPathComponent(weather.rawValue + "-window.mp4")
+            let url = output.appendingPathComponent(name + "-window.mp4")
             if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
             let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
             let input = AVAssetWriterInput(mediaType: .video, outputSettings: [AVVideoCodecKey: AVVideoCodecType.h264,
@@ -270,15 +288,23 @@ enum QualityCheck {
             writer.startSession(atSourceTime: .zero)
             let simulation = GlassSimulation(seed: 741), resources = WeatherFrameResources()
             for _ in 0..<480 { simulation.update(deltaTime: 1 / 60, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false) }
+            if wiping {
+                for _ in 0..<2400 { simulation.update(deltaTime: 1 / 60, size: SIMD2(1440, 900), weather: .rain, intensity: 0.65, wind: 0.25, gentle: false) }
+            }
             var timings: [Double] = []
             var contacts: [(Double, RainContact)] = []
             for i in 0..<300 {
                 try autoreleasepool {
+                    if wiping && i == 60 { simulation.wipe() }
                     simulation.update(deltaTime: 1 / 30, size: SIMD2(1440, 900), weather: weather, intensity: 0.65, wind: 0.25, gentle: false)
                     if weather == .rain { contacts += simulation.frameContacts.map { (Double(i) / 30, $0) } }
                     let frame = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / 30,
                                            width: width, height: height, surface: simulation, resources: resources)
                     timings.append(frame.gpuMilliseconds)
+                    if wiping && [0, 75, 135].contains(i) {
+                        _ = try render(gpu: gpu, weather: weather, photo: photo, time: 8 + Float(i) / 30,
+                                       output: output.appendingPathComponent("wiper-frame-\(i).png"), surface: simulation)
+                    }
                     let deadline = Date().addingTimeInterval(10)
                     while !input.isReadyForMoreMediaData && writer.status == .writing && Date() < deadline {
                         RunLoop.current.run(until: Date().addingTimeInterval(0.005))
@@ -303,14 +329,14 @@ enum QualityCheck {
             while writer.status == .writing && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
             guard writer.status == .completed else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
             if weather == .rain {
-                try writeRainPreviewAudio(contacts: contacts, output: output.appendingPathComponent("rain-preview.wav"))
+                try writeRainPreviewAudio(contacts: contacts, output: output.appendingPathComponent(name + "-preview.wav"), wipeAt: wiping ? 2 : nil)
             }
             timings.sort()
-            print("Motion preview: \(weather.rawValue), 300 frames, median GPU \(timings[timings.count / 2]) ms at 960 × 600.")
+            print("Motion preview: \(name), 300 frames, median GPU \(timings[timings.count / 2]) ms at 960 × 600.")
         }
     }
 
-    private static func writeRainPreviewAudio(contacts: [(Double, RainContact)], output: URL) throws {
+    private static func writeRainPreviewAudio(contacts: [(Double, RainContact)], output: URL, wipeAt: Double? = nil) throws {
         let rate = RainTapSound.sampleRate, length = rate * 10
         let bed = try AVAudioFile(forReading: Assets.root.appendingPathComponent("Audio/rain.m4a"),
                                   commonFormat: .pcmFormatFloat32, interleaved: false)
@@ -329,6 +355,13 @@ enum QualityCheck {
             for i in samples.indices where start + i < length {
                 stereo[(start + i) * 2] += samples[i] * volume * left
                 stereo[(start + i) * 2 + 1] += samples[i] * volume * right
+            }
+        }
+        if let wipeAt {
+            let samples = WiperSound.samples(), start = Int(wipeAt * Double(rate))
+            for i in 0..<(samples.count / 2) where start + i < length {
+                stereo[(start + i) * 2] += samples[i * 2] * gain * 0.55
+                stereo[(start + i) * 2 + 1] += samples[i * 2 + 1] * gain * 0.55
             }
         }
         for i in 0..<length {

@@ -12,6 +12,26 @@ enum Weather: String, Codable, CaseIterable, Identifiable {
 enum Backdrop: String, Codable { case desktop, istanbul }
 enum SceneFilter: String { case weather, winter, all }
 
+struct KeyShortcut: Codable, Equatable {
+    // Stable Carbon modifier values; Core does not need AppKit.
+    static let command: UInt32 = 1 << 8, shift: UInt32 = 1 << 9, option: UInt32 = 1 << 11, control: UInt32 = 1 << 12
+    static let mask = command | shift | option | control
+    static let wiperDefault = KeyShortcut(keyCode: 13, modifiers: command | option | control, keyLabel: "W")
+    var keyCode: UInt32
+    var modifiers: UInt32
+    var keyLabel: String
+    var isValid: Bool {
+        keyCode <= 126 && ![53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63].contains(keyCode)
+            && modifiers & ~Self.mask == 0 && modifiers & (Self.command | Self.control) != 0
+            && !keyLabel.isEmpty && keyLabel.count <= 12 && !keyLabel.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+    }
+    var isSokakReserved: Bool { modifiers == (Self.command | Self.option | Self.control) && [1, 46].contains(keyCode) }
+    var display: String {
+        (modifiers & Self.control != 0 ? "⌃" : "") + (modifiers & Self.option != 0 ? "⌥" : "")
+            + (modifiers & Self.shift != 0 ? "⇧" : "") + (modifiers & Self.command != 0 ? "⌘" : "") + keyLabel
+    }
+}
+
 struct Preferences: Codable, Equatable {
     var weather: Weather = .rain
     var backdrop: Backdrop = .desktop
@@ -27,10 +47,11 @@ struct Preferences: Codable, Equatable {
     var timerMinutes: Int = 0
     var display: String = "current"
     var sceneID: String = "galata-rain"
+    var wiperShortcut: KeyShortcut = .wiperDefault
 
     init() {}
     private enum CodingKeys: String, CodingKey {
-        case weather, backdrop, intensity, wind, volume, sound, economical, matchSeason, windowGlass, glassFocus, dimming, timerMinutes, display, sceneID
+        case weather, backdrop, intensity, wind, volume, sound, economical, matchSeason, windowGlass, glassFocus, dimming, timerMinutes, display, sceneID, wiperShortcut
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -48,6 +69,7 @@ struct Preferences: Codable, Equatable {
         timerMinutes = try c.decodeIfPresent(Int.self, forKey: .timerMinutes) ?? 0
         display = try c.decodeIfPresent(String.self, forKey: .display) ?? "current"
         sceneID = try c.decodeIfPresent(String.self, forKey: .sceneID) ?? "galata-rain"
+        wiperShortcut = (try? c.decode(KeyShortcut.self, forKey: .wiperShortcut)) ?? .wiperDefault
     }
 
     mutating func sanitize() {
@@ -58,6 +80,7 @@ struct Preferences: Codable, Equatable {
         dimming = min(0.65, Self.unit(dimming, fallback: 0.12))
         if ![0, 15, 30, 60, 120].contains(timerMinutes) { timerMinutes = 0 }
         if display != "current" && display != "all" && UInt32(display) == nil { display = "current" }
+        if !wiperShortcut.isValid || wiperShortcut.isSokakReserved { wiperShortcut = .wiperDefault }
     }
 
     static func unit(_ value: Double, fallback: Double) -> Double {

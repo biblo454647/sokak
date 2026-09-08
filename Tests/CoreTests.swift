@@ -32,6 +32,20 @@ import Foundation
         preferences.windowGlass = false
         let glassDisabled = try JSONEncoder().encode(preferences)
         precondition(!Preferences.decode(glassDisabled).windowGlass)
+        var oldSettings = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
+        oldSettings.removeValue(forKey: "wiperShortcut")
+        let upgraded = Preferences.decode(try JSONSerialization.data(withJSONObject: oldSettings))
+        precondition(upgraded.wiperShortcut == .wiperDefault && upgraded.volume == 0.7 && upgraded.weather == .snow)
+        var custom = upgraded
+        custom.wiperShortcut = KeyShortcut(keyCode: 40, modifiers: KeyShortcut.control | KeyShortcut.option, keyLabel: "K")
+        let customData = try JSONEncoder().encode(custom)
+        precondition(Preferences.decode(customData) == custom)
+        custom.wiperShortcut.modifiers = 0; custom.sanitize()
+        precondition(custom.wiperShortcut == .wiperDefault)
+        oldSettings["wiperShortcut"] = ["bad": "data"]
+        let malformedShortcut = try JSONSerialization.data(withJSONObject: oldSettings)
+        precondition(Preferences.decode(malformedShortcut) == upgraded)
+        precondition(KeyShortcut(keyCode: 1, modifiers: KeyShortcut.wiperDefault.modifiers, keyLabel: "S").isSokakReserved)
 
         let data = try Data(contentsOf: URL(fileURLWithPath: "Resources/scenes.json"))
         let scenes = try JSONDecoder().decode([StreetScene].self, from: data)

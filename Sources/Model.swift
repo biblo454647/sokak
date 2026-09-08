@@ -43,9 +43,14 @@ final class AppModel: ObservableObject {
     @Published var displays: [(id: String, name: String)] = []
     @Published var libraryVisible = false
     @Published var sceneFilter: SceneFilter = .weather
+    @Published var shortcutError: String?
+    @Published var recordingWiperShortcut = false { didSet { onRecordingShortcutChange?(recordingWiperShortcut) } }
     var onChange: (() -> Void)?
     var onRunningChange: (() -> Void)?
     var closePopover: (() -> Void)?
+    var onWipe: (() -> Void)?
+    var onWiperShortcutChange: ((KeyShortcut) -> String?)?
+    var onRecordingShortcutChange: ((Bool) -> Void)?
     private var clock = SessionClock()
     private var timer: Timer?
     private let defaults: UserDefaults
@@ -96,6 +101,18 @@ final class AppModel: ObservableObject {
         preferences = next
     }
     func toggle() { running ? stop() : start() }
+    var canWipe: Bool { running && preferences.weather == .rain && preferences.windowGlass }
+    func wipeGlass() { if canWipe { onWipe?() } }
+    func setWiperShortcut(_ shortcut: KeyShortcut) {
+        guard shortcut.isValid, !shortcut.isSokakReserved else {
+            shortcutError = shortcut.isSokakReserved ? "That combination is used for pause or sound." : "Include Command or Control. Escape cancels."
+            return
+        }
+        if let error = onWiperShortcutChange?(shortcut) { shortcutError = error; return }
+        preferences.wiperShortcut = shortcut
+        shortcutError = nil
+        recordingWiperShortcut = false
+    }
     func start() {
         error = nil
         matchPhoto()

@@ -149,10 +149,52 @@ vertex GlassOut glassVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
 float4 overTint(float4 base, float3 tint, float alpha) {
     return float4(base.rgb*(1-alpha)+tint*alpha,base.a+(1-base.a)*alpha);
 }
+float roundedBox(float2 p, float2 size, float radius) {
+    float2 d=abs(p)-size+radius;
+    return min(max(d.x,d.y),0.0)+length(max(d,0.0))-radius;
+}
 fragment float4 glassFragment(GlassOut in [[stage_in]], constant Uniforms &u [[buffer(0)]], texture2d<float> scene [[texture(0)]]) {
     constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);
     float2 q=in.local;
     float fade=in.opacity;
+    if (in.kind>4.5 && in.kind<5.5) {
+        // Collected water rides the leading rubber edge, with an uneven meniscus.
+        float x=q.x+.13*sin(q.y*4.0+in.seed*17);
+        float end=1-smoothstep(.65,1.0,abs(q.y));
+        float mask=(1-smoothstep(.6,1.0,abs(x)))*end*fade;
+        float2 right=float2(in.axis.y,-in.axis.x);
+        float4 water=u.hasPhoto>.5 ? scene.sample(s,in.screenUV+right*x*in.extent.x*2/u.size)*mask*.6 : float4(0);
+        water=overTint(water,float3(.025,.032,.036),exp(-pow((x-.55)*5,2.0))*mask*.55);
+        return overTint(water,float3(.85,.91,.94),exp(-pow((x+.55)*8,2.0))*mask*.68);
+    }
+    if (in.kind>5.5) {
+        // Narrow graphite hardware: rubber lip, bevelled spine, offset arm and
+        // one covered hinge. All dimensions are points, with a soft contact shadow.
+        float scale=clamp(u.size.y/900.0,.65,1.5);
+        float2 p=q*in.extent;
+        bool blade=in.kind<6.5, arm=in.kind>6.5 && in.kind<7.5;
+        float halfWidth=(blade ? 3.3 : arm ? 2.4 : 5.4)*scale;
+        float halfLength=in.extent.y-(blade || arm ? 6.0 : 2.0)*scale;
+        float bow=blade ? .8*scale*(1-q.y*q.y) : 0;
+        p.x-=bow;
+        halfWidth*=blade ? .82+.18*(1-q.y*q.y) : 1.0;
+        float radius=min(halfWidth,1.7*scale);
+        float d=roundedBox(p,float2(halfWidth,halfLength),radius);
+        float aa=max(fwidth(d),.45);
+        float body=1-smoothstep(-aa,aa,d);
+        float shadowD=roundedBox(p-float2(2.1,2.5)*scale,float2(halfWidth+.7*scale,halfLength),radius);
+        float shadow=(1-smoothstep(-1.0*scale,4.0*scale,shadowD))*.24;
+        float3 color=blade ? float3(.035,.042,.046) : float3(.067,.075,.081);
+        float bevel=exp(-pow((p.x+halfWidth*.58)/(.38*scale),2.0));
+        float illumination=.55+.45*abs(dot(in.axis,normalize(float2(.4,-1))));
+        color+=float3(.14,.15,.16)*bevel*illumination;
+        if (blade) {
+            float spine=exp(-pow(p.x/(.85*scale),2.0));
+            color=mix(color,float3(.095,.106,.114),spine*.6);
+            color*=1-.3*smoothstep(halfWidth*.4,halfWidth,p.x);
+        }
+        return overTint(float4(float3(.01)*shadow,shadow),color,body*.98);
+    }
     if (in.kind>3.5) {
         // Seen almost end-on through a roof light: a soft round droplet approaches
         // its contact point in depth. No screen-height streak or falling capsule.

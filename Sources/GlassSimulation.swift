@@ -69,6 +69,9 @@ final class GlassSimulation {
     private(set) var elapsed: Float = 0
     private(set) var impacts = 0
     private(set) var merges = 0
+    private(set) var wiper = WiperMotion()
+    private(set) var drainedVolume: Float = 0
+    var waterVolume: Float { drops.filter { !$0.snow }.reduce(0) { $0 + pow($1.radius, 3) } }
     private var state: UInt64
     private var size = SIMD2<Float>(1440, 900)
     private var weather: Weather = .rain
@@ -96,6 +99,7 @@ final class GlassSimulation {
         elapsed = 0; remainder = 0; untilImpact = 0.8; untilMerge = 0; impacts = 0; merges = 0
         shower = 0.6; showerTarget = 0.6; untilShower = 3
         rainHazard = 0.8
+        wiper.reset(); drainedVolume = 0
         initialized = true
         guard populate, weather != .mist else { return }
         let area = min(2.4, max(0.35, size.x * size.y / 1_296_000))
@@ -111,13 +115,31 @@ final class GlassSimulation {
     }
 
     func addImpact(at position: SIMD2<Float>, radius: Float, recordImpact: Bool = true) {
-        guard drops.count < Self.maxDrops else { return }
         let r = min(22, max(0.55, radius))
+        // Keep the accepted rain's random sequence; only rain's lifetime changes.
+        let longevity = random(), seed = random()
+        if drops.count >= Self.maxDrops {
+            guard weather == .rain, let nearest = drops.indices.min(by: {
+                let a = drops[$0].position - position, b = drops[$1].position - position
+                return a.x * a.x + a.y * a.y < b.x * b.x + b.y * b.y
+            }) else { return }
+            // Dense wet glass absorbs new water locally instead of deleting an old
+            // bead or dropping incoming volume when the bounded particle pool fills.
+            drops[nearest].radius = pow(pow(drops[nearest].radius, 3) + pow(r, 3), 1 / Float(3))
+            if recordImpact { impacts += 1 }
+            return
+        }
         drops.append(GlassDrop(position: position, radius: r,
-                               life: weather == .snow ? 7 + random() * 12 : 40 + random() * 70,
-                               seed: random(), anchor: position, snow: weather == .snow))
+                               life: weather == .snow ? 7 + longevity * 12 : .infinity,
+                               seed: seed, anchor: position, snow: weather == .snow))
         if recordImpact { impacts += 1 }
     }
+
+    @discardableResult func wipe() -> Bool {
+        guard initialized, weather == .rain else { return false }
+        return wiper.start()
+    }
+    func cancelWipe() { wiper.reset() }
 
     private func beadRadius() -> Float {
         random() < 0.5 ? 0.8 + pow(random(), 1.4) * 2.5 : 2 + pow(random(), 1.8) * 6.5
@@ -151,7 +173,7 @@ final class GlassSimulation {
         age < 0.055 ? 0.5 + 1.7 * sin(max(0, age) / 0.055 * .pi * 0.5) : 1 + 1.2 * exp(-(age - 0.055) * 14)
     }
 
-    func update(deltaTime: Float, size: SIMD2<Float>, weather: Weather, intensity: Float, wind: Float, gentle: Bool) {
+    func update(deltaTime: Float, size: SIMD2<Float>, weather: Weather, intensity: Float, wind: Float, gentle: Bool, precipitating: Bool = true) {
         frameContacts.removeAll(keepingCapacity: true)
         guard size.x > 0, size.y > 0 else { return }
         if !initialized || self.size != size || self.weather != weather {
@@ -162,12 +184,13 @@ final class GlassSimulation {
         remainder += min(deltaTime, 0.1)
         let step: Float = 1 / 120
         while remainder + 0.000001 >= step {
-            tick(step * (gentle ? 0.55 : 1), intensity: intensity, wind: wind)
+            tick(step * (gentle ? 0.55 : 1), intensity: intensity, wind: wind, precipitating: precipitating)
+            advanceWiper(step)
             remainder = max(0, remainder - step)
         }
     }
 
-    private func tick(_ dt: Float, intensity: Float, wind: Float) {
+    private func tick(_ dt: Float, intensity: Float, wind: Float, precipitating: Bool) {
         elapsed += dt
         guard weather != .mist else { return }
         let area = min(2.4, max(0.35, size.x * size.y / 1_296_000))
@@ -186,7 +209,7 @@ final class GlassSimulation {
             for drop in landed { land(drop) }
             // Integrate a Poisson hazard, so live frequency changes apply immediately.
             let rate = (2.5 + 42 * pow(intensity, 1.35)) * (0.75 + shower * 0.5) * area
-            rainHazard -= dt * rate
+            if precipitating { rainHazard -= dt * rate }
             while rainHazard <= 0 {
                 rainHazard += max(0.01, -log(max(0.001, random())))
                 let point = SIMD2(random() * size.x, random() * size.y)
@@ -218,7 +241,9 @@ final class GlassSimulation {
                 let friction = 0.65 + 0.35 * sin(drops[i].position.y * 0.019 + drops[i].seed * 91)
                 // A shallow roof pitch lets heavy water creep; it does not stream
                 // vertically across the viewer's field like a wall-mounted window.
-                let target = min(2.8, (drops[i].radius - release + 0.6) * 0.45) * friction
+                let excess = max(0, drops[i].radius - 18)
+                let speedLimit = min(26, 2.8 + pow(excess, 1.3) * 0.45)
+                let target = min(speedLimit, (drops[i].radius - release + 0.6) * (0.45 + excess * 0.07)) * friction
                 drops[i].velocity += (target - drops[i].velocity) * min(1, dt * 0.7)
                 let distance = drops[i].velocity * dt
                 drops[i].position.y += distance
@@ -236,16 +261,38 @@ final class GlassSimulation {
             coalesce()
             untilMerge += 1 / 30
         }
-        drops.removeAll { $0.position.y > size.y + 35 || $0.age > $0.life }
+        for drop in drops where !drop.snow && drop.position.y > size.y + drop.radius + 2 {
+            drainedVolume += pow(drop.radius, 3)
+        }
+        drops.removeAll { $0.snow ? ($0.position.y > size.y + 35 || $0.age > $0.life) : $0.position.y > size.y + $0.radius + 2 }
         if trails.count > Self.maxTrails { trails.removeFirst(trails.count - Self.maxTrails) }
+    }
+
+    private func advanceWiper(_ dt: Float) {
+        guard weather == .rain, wiper.active else { return }
+        let previous = wiper.pose(size: size)
+        wiper.advance(dt)
+        let current = wiper.pose(size: size)
+        drops.removeAll { drop in
+            guard current.crosses(drop.position, radius: drop.radius, from: previous) else { return false }
+            wiper.collect(position: drop.position, volume: pow(drop.radius, 3), pose: current)
+            return true
+        }
+        splashes.removeAll { current.crosses($0.center, radius: $0.radius, from: previous) }
+        trails.removeAll {
+            current.crosses($0.start, radius: $0.width, from: previous) || current.crosses($0.end, radius: $0.width, from: previous)
+                || current.crosses(($0.start + $0.end) * 0.5, radius: $0.width, from: previous)
+        }
+        wiper.drainIfParked()
     }
 
     private func coalesce() {
         // Spatial bins keep the large, mostly still bead field inexpensive. A drop
         // travels less than one point between collision passes, even at maximum speed.
         var cells: [SIMD2<Int32>: [Int]] = [:]
+        let cellWidth = max(44, (drops.map(\.radius).max() ?? 22) * 1.73)
         for i in drops.indices {
-            let cell = SIMD2<Int32>(Int32(floor(drops[i].position.x / 44)), Int32(floor(drops[i].position.y / 44)))
+            let cell = SIMD2<Int32>(Int32(floor(drops[i].position.x / cellWidth)), Int32(floor(drops[i].position.y / cellWidth)))
             var consumed = false
             for dy: Int32 in -1...1 {
                 for dx: Int32 in -1...1 {
@@ -256,7 +303,7 @@ final class GlassSimulation {
                         let a = pow(drops[j].radius, 3), b = pow(drops[i].radius, 3)
                         drops[j].position = (drops[j].position * a + drops[i].position * b) / (a + b)
                         drops[j].velocity = (drops[j].velocity * a + drops[i].velocity * b) / (a + b)
-                        drops[j].radius = min(22, pow(a + b, 1 / Float(3)))
+                        drops[j].radius = pow(a + b, 1 / Float(3))
                         drops[j].life = max(drops[j].life, drops[i].life)
                         drops[j].anchor = drops[j].position
                         drops[i].radius = 0
@@ -291,7 +338,7 @@ final class GlassSimulation {
                                       age: trail.age, seed: trail.seed, kind: 1, opacity: pow(max(0, 1 - trail.age / 16), 1.6)))
         }
         for drop in drops {
-            let fade = min(1, max(0, (drop.life - drop.age) / (drop.snow ? 3 : 18)))
+            let fade: Float = drop.snow ? min(1, max(0, (drop.life - drop.age) / 3)) : 1
             let arrival = drop.snow ? min(1, drop.age / 0.28) : min(1, max(0, (drop.age - 0.06) / 0.24))
             let stretch = min(0.32, drop.velocity / 65)
             let radius = drop.radius * (0.7 + 0.3 * arrival) * sqrt(fade)
@@ -304,6 +351,7 @@ final class GlassSimulation {
             result.append(GlassSprite(center: splash.center, extent: SIMD2(radius, radius * (0.9 + splash.seed * 0.16)),
                                       axis: SIMD2(0, 1), age: splash.age, seed: splash.seed, kind: 2, opacity: 1))
         }
+        result += wiper.sprites(size: size)
         return result
     }
 }

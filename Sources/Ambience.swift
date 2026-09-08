@@ -9,6 +9,7 @@ final class Ambience {
     private var targetVolume: Float = 0
     private var failed = false
     private var rainTaps: RainTapPlayer?
+    private var wiperSound: AVAudioPlayer?
     private var glassContactsEnabled = false
     var onError: ((String) -> Void)?
 
@@ -16,7 +17,7 @@ final class Ambience {
         targetWeather = preferences.weather
         targetVolume = running && preferences.sound ? Float(preferences.volume) * 0.8 : 0
         glassContactsEnabled = running && preferences.sound && preferences.windowGlass && preferences.weather == .rain
-        if !glassContactsEnabled || targetVolume == 0 { rainTaps?.stop() }
+        if !glassContactsEnabled || targetVolume == 0 { rainTaps?.stop(); wiperSound?.stop() }
         guard targetVolume > 0 || !players.isEmpty else { return }
         if targetVolume > 0, players[targetWeather] == nil {
             do {
@@ -38,6 +39,10 @@ final class Ambience {
             do { rainTaps = try RainTapPlayer() }
             catch { if !failed { onError?("Rain taps are unavailable. The ambient rain can still play."); failed = true } }
         }
+        if glassContactsEnabled && targetVolume > 0 && wiperSound == nil {
+            wiperSound = try? AVAudioPlayer(data: RainTapSound.wave(samples: WiperSound.samples(), channels: 2))
+            wiperSound?.prepareToPlay()
+        }
         if timer == nil {
             timer = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { [weak self] _ in self?.tick() }
         }
@@ -46,6 +51,12 @@ final class Ambience {
         guard glassContactsEnabled, targetWeather == .rain else { return }
         // Follow the same fade and mute controls as the bed, including at startup.
         rainTaps?.play(contacts, gain: min(targetVolume, players[.rain]?.volume ?? 0))
+    }
+    func playWiper() {
+        guard glassContactsEnabled, targetVolume > 0, let wiperSound, !wiperSound.isPlaying else { return }
+        wiperSound.currentTime = 0
+        wiperSound.volume = min(targetVolume, players[.rain]?.volume ?? 0) * 0.55
+        wiperSound.play()
     }
     private func tick() {
         var fading = false
@@ -60,6 +71,7 @@ final class Ambience {
                 if target == 0 { player.pause() }
             }
         }
+        wiperSound?.volume = min(targetVolume, players[.rain]?.volume ?? 0) * 0.55
         if !fading { timer?.invalidate(); timer = nil }
     }
     func stopImmediately() {
@@ -67,5 +79,6 @@ final class Ambience {
         players.values.forEach { $0.stop() }
         players.removeAll()
         rainTaps?.stop(); rainTaps = nil
+        wiperSound?.stop(); wiperSound = nil
     }
 }

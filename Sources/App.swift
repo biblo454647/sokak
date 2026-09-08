@@ -30,6 +30,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         overlay = OverlayController(model: model)
         overlay.onRainContacts = { [weak self] contacts in self?.sound.playRainContacts(contacts) }
+        overlay.onWiperStart = { [weak self] in self?.sound.playWiper() }
+        model.onWipe = { [weak self] in self?.overlay.wipeGlass() }
+        model.onWiperShortcutChange = { [weak self] shortcut in self?.shortcuts.replaceWiper(shortcut) }
+        model.onRecordingShortcutChange = { [weak self] recording in
+            guard let self else { return }
+            if !self.shortcuts.setRecording(recording) {
+                self.model.shortcutError = "A shortcut is unavailable. Choose another combination; menu controls still work."
+            }
+        }
         model.updater.beforeInstall = { [weak model] in model?.stop() }
         model.updater.start()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -47,9 +56,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         model.onRunningChange = { [weak self] in self?.synchronize() }
         sound.onError = { [weak model] message in model?.error = message }
         shortcuts.action = { [weak model] id in
-            if id == 1 { model?.toggle() } else if id == 2 { model?.preferences.sound.toggle() }
+            if id == 1 { model?.toggle() } else if id == 2 { model?.preferences.sound.toggle() } else if id == 3 { model?.wipeGlass() }
         }
-        if !shortcuts.register() { model.error = "A keyboard shortcut is in use by another app. You can always pause from the menu bar." }
+        if !shortcuts.register(wiper: model.preferences.wiperShortcut) { model.shortcutError = "A keyboard shortcut is in use by another app. You can use the menu controls or choose another wiper shortcut." }
         synchronize()
         if !UserDefaults.standard.bool(forKey: "has-opened-v1") || CommandLine.arguments.contains("--show") {
             UserDefaults.standard.set(true, forKey: "has-opened-v1")
@@ -65,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         status.button?.image = image
         status.button?.toolTip = "Sokak · \(model.running ? model.preferences.weather.title : "Paused") · ⌃⌥⌘S"
     }
-    func popoverDidClose(_ notification: Notification) { overlay.focusImmersive() }
+    func popoverDidClose(_ notification: Notification) { model.recordingWiperShortcut = false; overlay.focusImmersive() }
     @objc private func statusClicked() {
         if NSApp.currentEvent?.type == .rightMouseUp { model.toggle(); return }
         if popover.isShown { popover.performClose(nil) } else { showPopover() }

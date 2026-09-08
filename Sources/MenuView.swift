@@ -109,6 +109,26 @@ struct MenuView: View {
                 DisclosureGroup {
                     VStack(alignment: .leading, spacing: 12) {
                         Toggle("Window glass · droplets & winter frost", isOn: $model.preferences.windowGlass)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Wiper shortcut")
+                                Spacer()
+                                ShortcutRecorder(model: model).frame(width: 132, height: 27)
+                                if model.preferences.wiperShortcut != .wiperDefault {
+                                    Button("Reset") { model.setWiperShortcut(.wiperDefault) }.buttonStyle(.borderless)
+                                }
+                            }
+                            HStack {
+                                Button("Wipe glass") { model.wipeGlass(); model.closePopover?() }
+                                    .disabled(!model.canWipe)
+                                    .help("One sweep across the rain glass. Rain keeps falling while the blade passes.")
+                                Text("One sweep, then back to the rain.")
+                                    .font(.system(size: 10)).foregroundStyle(pearl.opacity(0.5))
+                            }
+                            if let error = model.shortcutError {
+                                Text(error).font(.system(size: 10)).foregroundStyle(Color(red: 1, green: 0.75, blue: 0.57)).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                         Toggle("Low power · 30 fps", isOn: $model.preferences.economical)
                         Toggle("Match photos to the weather", isOn: $model.preferences.matchSeason)
                         UpdateSettings(updater: model.updater)
