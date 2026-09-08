@@ -101,15 +101,15 @@ final class GlassSimulation {
         rainHazard = 0.8
         wiper.reset(); drainedVolume = 0
         initialized = true
-        guard populate, weather != .mist else { return }
+        // A new rain session starts with dry glass. Water is deposited only by
+        // drops that approach and contact the pane. Preserve the snow field.
+        guard populate, weather == .snow else { return }
         let area = min(2.4, max(0.35, size.x * size.y / 1_296_000))
-        // The roof is already lightly wet. Intensity changes incoming frequency,
-        // never the geometry or size of an individual drop.
-        let count = min(Self.maxDrops, Int((weather == .rain ? 240 : 8 + intensity * 12) * area))
+        let count = min(Self.maxDrops, Int((8 + intensity * 12) * area))
         for _ in 0..<count {
             let p = SIMD2(random() * size.x, random() * size.y)
-            addImpact(at: p, radius: weather == .rain ? beadRadius() : 2.5 + random() * 3.5)
-            drops[drops.count - 1].age = weather == .rain ? 2 + random() * 25 : 1 + random() * 4
+            addImpact(at: p, radius: 2.5 + random() * 3.5)
+            drops[drops.count - 1].age = 1 + random() * 4
         }
         impacts = 0
     }
@@ -140,10 +140,6 @@ final class GlassSimulation {
         return wiper.start()
     }
     func cancelWipe() { wiper.reset() }
-
-    private func beadRadius() -> Float {
-        random() < 0.5 ? 0.8 + pow(random(), 1.4) * 2.5 : 2 + pow(random(), 1.8) * 6.5
-    }
 
     func launchDrop(at position: SIMD2<Float>, radius: Float, duration: Float = 0.3, wind: Float = 0) {
         guard approaches.count < Self.maxApproaches else { return }

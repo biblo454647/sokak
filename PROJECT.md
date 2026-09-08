@@ -1,7 +1,7 @@
 # Sokak
 
 - Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and an Istanbul photograph library.
-- Current release: 1.5.0. Rainwater remains on the glass until it merges, drains or is wiped. A user-assigned shortcut drives one beam-wiper sweep, gathering water at the blade edge while rain continues. The accepted rain approach, snow, photographs and signed GitHub updates remain available. No new runtime dependency or paid asset is required.
+- Current release: 1.5.1. Rain starts on dry glass and accumulates water only when drops arrive. Rainwater remains until it merges, drains or is wiped. A user-assigned shortcut drives one beam-wiper sweep, gathering water at the blade edge while rain continues. The accepted rain approach, snow, photographs and signed GitHub updates remain available. No new runtime dependency or paid asset is required.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak

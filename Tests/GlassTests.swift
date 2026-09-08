@@ -6,6 +6,28 @@ import Foundation
         glass.update(deltaTime: dt, size: size, weather: weather, intensity: intensity, wind: 0.4, gentle: false)
     }
     static func main() {
+        for intensity: Float in [0, 0.48, 1] {
+            for dt: Float in [1 / 30, 1 / 60] {
+                let fresh = GlassSimulation(seed: 81)
+                step(fresh, 0, intensity: intensity)
+                precondition(fresh.sprites.isEmpty && fresh.waterVolume == 0 && fresh.impacts == 0,
+                             "The first rain frame must contain no pre-existing water or falling drops")
+                var contacted = false
+                for _ in 0..<Int(2 / dt) {
+                    step(fresh, dt, intensity: intensity)
+                    if !fresh.frameContacts.isEmpty { contacted = true }
+                    if !contacted {
+                        precondition(fresh.drops.isEmpty && fresh.trails.isEmpty && fresh.splashes.isEmpty,
+                                     "Glass must stay dry until an approaching drop actually lands")
+                    }
+                }
+                precondition(contacted && fresh.waterVolume > 0, "Rain must start naturally and accumulate water")
+                fresh.wipe()
+                fresh.reset(size: size, weather: .rain, intensity: intensity)
+                precondition(fresh.sprites.isEmpty && fresh.waterVolume == 0 && fresh.impacts == 0,
+                             "Restarting rain must clear old water, approaches and the wiper")
+            }
+        }
         let merged = GlassSimulation(seed: 9)
         merged.reset(size: size, weather: .rain, intensity: 0, populate: false)
         merged.addImpact(at: SIMD2(400, 200), radius: 4)
