@@ -6,6 +6,28 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Sokak</title>
         <item>
+            <title>1.5.0</title>
+            <pubDate>Tue, 08 Sep 2026 14:30:53 +0100</pubDate>
+            <link>https://github.com/biblo454647/sokak/releases/latest</link>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Sokak 1.5.0</title>
+<h1>Water that stays. A wiper when you want it.</h1>
+<ul>
+<li>Small rain beads remain on the glass. Water no longer fades away on an expiry timer; it merges, grows heavier and can drain off the lower edge.</li>
+<li>Press Control–Option–Command–W for one smooth beam-wiper sweep. The blade gathers water at its edge while rain keeps falling.</li>
+<li>Choose your own combination under A few little details → Wiper shortcut, or use Wipe glass there. Escape cancels recording; shortcut conflicts keep your previous choice.</li>
+<li>Quiet stereo rubber strokes follow the wiper. Sound off silences them along with rain.</li>
+<li>The accepted rain approach, clear photographs and snow behavior are preserved.</li>
+</ul>
+<p>Your existing settings and imported photographs are preserved. No additional app or subscription is needed.</p>
+</html>
+]]></description>
+            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.0/Sokak-1.5.0-universal.zip" length="65562501" type="application/octet-stream" sparkle:edSignature="YJTfYfUmUeDX5noKicjRRwOy+LqhJQzgcA5psCApt4puU28lhcx5Qyqu4/IiATvhQgPCFNb/I9oResGbVGvBDA=="/>
+        </item>
+        <item>
             <title>1.4.0</title>
             <pubDate>Mon, 07 Sep 2026 15:27:55 +0100</pubDate>
             <link>https://github.com/biblo454647/sokak/releases/latest</link>
@@ -48,29 +70,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.3.1/Sokak-1.3.1-universal.zip" length="65438373" type="application/octet-stream" sparkle:edSignature="OLpZVZxPI+06KlEuBpyHt+8HZ9b4zoNuGRsCuzOCIFaDyVxPMvj4UVmuCh1pB6y3QBliK8qOw3iWUao5Pg8NCQ=="/>
         </item>
-        <item>
-            <title>1.3.0</title>
-            <pubDate>Mon, 07 Sep 2026 10:23:52 +0100</pubDate>
-            <link>https://github.com/biblo454647/sokak/releases/latest</link>
-            <sparkle:version>5</sparkle:version>
-            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>A slower rain, a window of your own</h2>
-<ul>
-<li>Hundreds of small beads cling to the glass. Occasional heavy drops merge and glide down slowly.</li>
-<li>Focused glass, inverted reflections, dark upper edges and fine lower highlights. Use Focus to soften the street behind it.</li>
-<li>Subtle rain outside the window changes its placement and depth on every descent.</li>
-<li>Four new Istanbul photographs: a rainy night at Galata Bridge, Ayasofya in rain, a quiet wet courtyard, and a grey day on the Bosphorus.</li>
-<li>Weather matching now excludes sunny photographs from rain and keeps snowy photographs for snow.</li>
-<li>Check for Updates from the menu bar, download the signed GitHub release, and install and relaunch inside Sokak. Optional automatic checks; installation stays your choice.</li>
-</ul>
-<p>macOS 13 or later. Settings and personal photographs are preserved. This community build is ad-hoc signed and is not Apple-notarized; your Mac's normal installation policy still applies.</p>
-]]></description>
-            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.3.0/Sokak-1.3.0-universal.zip" length="65408097" type="application/octet-stream" sparkle:edSignature="0mZMMDP6Ux8RRoG+njSetfxQsH148znxgMp6qaRmRtvA+xgTSRz2AxoTexH4KVd28cH5K54ilNWYkkCnsN1nDw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 27tF/zC55fIwr3we9kEJuqB7gnIATGMFOXWMZMLC4vE1kuPynwehkExGINTS2tzsKlFZ3zCk4rUgRvYphTKmAA==
-length: 5284
+edSignature: zXJXJ3Za0dRDabOHzEm+eMziYbKSzR4L6h82wYxQxly7Ims6EhLCzvgafftkH7pguDvZ7mjjyIB386WEzVgFAg==
+length: 5203
 -->
