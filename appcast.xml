@@ -6,6 +6,21 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Sokak</title>
         <item>
+            <title>1.5.2</title>
+            <pubDate>Tue, 08 Sep 2026 15:22:12 +0100</pubDate>
+            <link>https://github.com/biblo454647/sokak/releases/latest</link>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Sokak 1.5.2</title>
+<body><h2>A smoother sweep, a steadier menu</h2>
+<p>The wiper now moves on every display frame and temporarily uses your screen's refresh rate, up to 120 Hz, even with Low power enabled. A short motion blur softens the moving blade, while the photograph and water remain sharp. Reusing still backgrounds reduces rendering work.</p>
+<p>The control menu keeps its size and menu-bar anchor when switching rain, snow or mist. Clean rain starts, retained water and your wiper shortcut are preserved.</p></body></html>
+]]></description>
+            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.2/Sokak-1.5.2-universal.zip" length="65570739" type="application/octet-stream" sparkle:edSignature="e5L/BY2NfaZ3qaSLKlISjL1n9H5BQi42fZgG2WOcHsn+UGie02o5kn308RZ28YhD56jHwhaxYYEYfn7wprEXBw=="/>
+        </item>
+        <item>
             <title>1.5.1</title>
             <pubDate>Tue, 08 Sep 2026 14:54:03 +0100</pubDate>
             <link>https://github.com/biblo454647/sokak/releases/latest</link>
@@ -42,31 +57,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.0/Sokak-1.5.0-universal.zip" length="65562501" type="application/octet-stream" sparkle:edSignature="YJTfYfUmUeDX5noKicjRRwOy+LqhJQzgcA5psCApt4puU28lhcx5Qyqu4/IiATvhQgPCFNb/I9oResGbVGvBDA=="/>
         </item>
-        <item>
-            <title>1.4.0</title>
-            <pubDate>Mon, 07 Sep 2026 15:27:55 +0100</pubDate>
-            <link>https://github.com/biblo454647/sokak/releases/latest</link>
-            <sparkle:version>7</sparkle:version>
-            <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<!doctype html>
-<html lang="en"><meta charset="utf-8"><title>Sokak 1.4.0</title>
-<h1>Rain on the glass above you</h1>
-<ul>
-<li>Rain now feels like looking up through a roof window. Round drops approach a point on the glass, strike it, briefly spread and leave a water bead.</li>
-<li>Intensity controls how often drops arrive. It no longer thickens or stretches the falling drops.</li>
-<li>Live glass contacts trigger soft, varied taps, panned toward where they land. The sound toggle and volume apply to both ambience and taps.</li>
-<li>Water gathers and joins nearby beads, with only slow drainage. Photographs remain visible.</li>
-<li>Snow retains its existing movement, flakes, frost and ambience.</li>
-</ul>
-<p>Your settings and imported photographs are preserved.</p>
-</html>
-]]></description>
-            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.4.0/Sokak-1.4.0-universal.zip" length="65468138" type="application/octet-stream" sparkle:edSignature="GTqZYHwdRXCTVl2igkX1AysSwmcS/hVgV1GheAFurzn/bXa9KgYp//kh0bcq1NUD/iVrhHtdVlZqMOZ4zJ4OAA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 7sQdxuTAfMgljYGEtgIpTxGaZBc3dB00AwWAEU5v+sh/+8JFFJtog3T0R/S2eEVouDAHD2o9j3PxPlbKqAAvAg==
-length: 4797
+edSignature: C3AXO4NRwO7eidvaLBTCAp8LlLdsQsjSt5+z1Ec9DGcM+fx9JVd/6u5UB6RN0vWus8m79dG7SE75Lsph3wWzBg==
+length: 4611
 -->
