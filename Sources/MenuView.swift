@@ -49,9 +49,12 @@ struct MenuView: View {
                     if model.preferences.backdrop == .istanbul {
                         Button { model.libraryVisible = true } label: {
                             HStack(spacing: 10) {
-                                if let scene = model.scene, let image = model.thumbnail(scene) {
-                                    Image(nsImage: image).resizable().scaledToFill().frame(width: 48, height: 37).clipped().cornerRadius(6)
-                                }
+                                ZStack {
+                                    Color.white.opacity(0.045)
+                                    if let scene = model.scene, let image = model.thumbnail(scene) {
+                                        Image(nsImage: image).resizable().scaledToFill()
+                                    }
+                                }.frame(width: 48, height: 37).clipped().cornerRadius(6)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(model.scene?.title ?? "Choose a street").font(.system(size: 12, weight: .semibold))
                                     Text(model.scene?.subtitle ?? "Offline photograph library").font(.system(size: 10)).foregroundStyle(pearl.opacity(0.55))

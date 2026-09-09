@@ -67,6 +67,24 @@ import Foundation
         precondition(StreetScene.matching(.snow, current: summer, scenes: [summer]) == summer.id)
         precondition(StreetScene.matching(.rain, current: nil, scenes: []) == nil)
         precondition(Set(scenes.map(\.id)).count == scenes.count)
+        for weather in Weather.allCases {
+            let choices = scenes.filter { $0.suits(weather) }
+            var current = choices[0].id
+            for _ in 0..<2 {
+                for expected in choices.dropFirst() + [choices[0]] {
+                    current = StreetScene.adjacent(to: current, direction: 1, weather: weather, matching: true, scenes: scenes)!.id
+                    precondition(current == expected.id && expected.suits(weather))
+                }
+            }
+            precondition(StreetScene.adjacent(to: current, direction: -1, weather: weather, matching: true, scenes: scenes)?.id == choices.last?.id)
+        }
+        precondition(StreetScene.adjacent(to: scenes.last!.id, direction: 1, weather: .rain, matching: false, scenes: scenes)?.id == scenes.first!.id)
+        precondition(StreetScene.adjacent(to: "retired", direction: 1, weather: .rain, matching: true, scenes: scenes)?.id == "galata-rain")
+        precondition(StreetScene.adjacent(to: "retired", direction: -1, weather: .rain, matching: false, scenes: scenes)?.id == scenes.last!.id)
+        precondition(StreetScene.adjacent(to: summer.id, direction: 1, weather: .rain, matching: true, scenes: [summer]) == nil)
+        precondition(StreetScene.adjacent(to: summer.id, direction: 1, weather: .rain, matching: false, scenes: [summer]) == summer)
+        precondition(StreetScene.adjacent(to: "missing", direction: 1, weather: .rain, matching: false, scenes: []) == nil)
+        print("Passed: next/previous wraparound, two complete weather-matched loops, all-street browsing and missing/single/empty catalogues.")
         print("Passed: timer boundaries, safe settings recovery, persistence, winter matching, empty catalogs, unique scene IDs.")
     }
 }

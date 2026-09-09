@@ -55,6 +55,9 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private let defaults: UserDefaults
     private var thumbnails: [String: NSImage] = [:]
+    private var loadingThumbnails = Set<String>()
+    private var failedThumbnails = Set<String>()
+    private let thumbnailQueue = DispatchQueue(label: "Sokak.thumbnails", qos: .utility)
 
     init(defaults: UserDefaults = .standard, includePersonalPhotos: Bool = true) {
         self.defaults = defaults
@@ -82,11 +85,28 @@ final class AppModel: ObservableObject {
     }
 
     var scene: StreetScene? { scenes.first { $0.id == preferences.sceneID } }
-    func thumbnail(_ scene: StreetScene) -> NSImage? {
+    func thumbnail(_ scene: StreetScene, loadImmediately: Bool = false) -> NSImage? {
         if let value = thumbnails[scene.id] { return value }
-        let value = Assets.thumbnail(scene)
-        thumbnails[scene.id] = value
-        return value
+        // Deterministic offscreen snapshots may warm the cache before drawing.
+        if loadImmediately {
+            let value = Assets.thumbnail(scene)
+            thumbnails[scene.id] = value
+            return value
+        }
+        guard !loadingThumbnails.contains(scene.id), !failedThumbnails.contains(scene.id) else { return nil }
+        loadingThumbnails.insert(scene.id)
+        thumbnailQueue.async { [weak self] in
+            let value = autoreleasepool { Assets.thumbnail(scene) }
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.loadingThumbnails.remove(scene.id)
+                if let value {
+                    self.objectWillChange.send()
+                    self.thumbnails[scene.id] = value
+                } else { self.failedThumbnails.insert(scene.id) }
+            }
+        }
+        return nil
     }
     func refreshDisplays() {
         displays = NSScreen.screens.map { (id: Self.id(for: $0), name: $0.localizedName) }
@@ -139,6 +159,13 @@ final class AppModel: ObservableObject {
         next.sceneID = scene.id
         if !scene.suits(next.weather) { next.matchSeason = false }
         preferences = next
+    }
+    func browseStreet(_ direction: Int) {
+        guard running, preferences.backdrop == .istanbul, !recordingWiperShortcut,
+              let next = StreetScene.adjacent(to: preferences.sceneID, direction: direction,
+                                              weather: preferences.weather, matching: preferences.matchSeason, scenes: scenes),
+              next.id != preferences.sceneID else { return }
+        preferences.sceneID = next.id
     }
     var visibleScenes: [StreetScene] {
         scenes.filter { sceneFilter == .all || (sceneFilter == .winter ? $0.winter : $0.suits(preferences.weather)) }

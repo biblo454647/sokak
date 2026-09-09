@@ -23,12 +23,13 @@ import MetalKit
                     let delta = max(abs(menu.frame.minX - original.minX), abs(menu.frame.minY - original.minY))
                     maximumDelta = max(maximumDelta, delta)
                     guard menu.isVisible, delta < 1, menu.frame.size == original.size else {
-                        throw NSError(domain: "Sokak.QA", code: 1, userInfo: [NSLocalizedDescriptionKey: "Weather selection moved or resized the menu by \(delta) points"])
+                        throw NSError(domain: "Sokak.QA", code: 1, userInfo: [NSLocalizedDescriptionKey: "Menu changed: visible=\(menu.isVisible), delta=\(delta), size=\(menu.frame.size), original=\(original.size), weather=\(weather), backdrop=\(backdrop), running=\(running)"])
                     }
                 }
             }
         }
         model.stop(); model.closePopover?()
+        let navigation = try await NavigationChecks.run(model)
         let gpu = try WeatherGPU()
         guard let screen = NSScreen.main, let scene = model.scenes.first(where: { $0.id == "galata-rain" }) else { throw CocoaError(.coderInvalidValue) }
         let window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
@@ -42,7 +43,7 @@ import MetalKit
         var preferences = Preferences()
         preferences.weather = .rain; preferences.intensity = 1; preferences.economical = true
         let renderer = WeatherRenderer(gpu: gpu, preferences: preferences, surface: surface)
-        try renderer.configure(preferences, photoURL: Assets.url(for: scene))
+        renderer.configure(preferences, photoURL: Assets.url(for: scene))
         view.delegate = renderer; window.contentView = view
         var samples: [(Double, Double, Bool, Bool)] = []
         renderer.onPresentedFrame = { samples.append(($0, $1, $2, $3)) }
@@ -59,7 +60,7 @@ import MetalKit
         }
         let active = intervals(wiping: true), idle = intervals(wiping: false)
         guard active.count > 60 else { throw NSError(domain: "Sokak.QA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Insufficient presented frames: samples=\(samples.count), active=\(samples.filter { $0.2 }.count), positive stamps=\(samples.filter { $0.0 > 0 }.count), intervals=\(active.count), requestedFPS=\(view.preferredFramesPerSecond)"]) }
-        let report: [String: Any] = ["menuMaximumOriginDeltaPoints": maximumDelta, "menuWeatherTransitions": 20,
+        let report: [String: Any] = ["streetNavigation": navigation, "menuMaximumOriginDeltaPoints": maximumDelta, "menuWeatherTransitions": 20,
             "timingSource": samples.allSatisfy { $0.3 } ? "drawable presentation timestamps" : "presentation-handler clock; display did not supply drawable timestamps",
             "wiperPresentedIntervals": active.count, "wiperMedianIntervalMS": percentile(active, 0.5),
             "wiperP95IntervalMS": percentile(active, 0.95), "economyIdleMedianIntervalMS": percentile(idle, 0.5),

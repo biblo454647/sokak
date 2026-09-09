@@ -29,7 +29,7 @@ Photographs were selected for wet reflections, overcast or night light, snow cov
 
 **[Download Sokak for Mac](https://github.com/biblo454647/sokak/releases/latest)** · **[Browse the source](https://github.com/biblo454647/sokak)** · **[Report an issue](https://github.com/biblo454647/sokak/issues)**
 
-Download **Sokak-1.6.0-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
+Download **Sokak-1.6.1-universal.zip** from the release page. Unzip it and move **Sokak.app** into `~/Applications`, then open it. No Homebrew or separate runtime installation is needed. Sokak is free and open source.
 
 **Already using 1.2 or earlier?** Install the current version once from the ZIP; those older versions do not have an updater. From 1.3 onward, click **Updates** at the bottom of the menu, then **Install Update → Install and Relaunch**. Your settings and imported photographs are preserved. Optional automatic checks are in **A few little details**; installation always stays your choice. Updates come from this repository's GitHub Releases through a signed feed and signed archives. No GitHub sign-in is needed. Keep the app in a writable Applications folder, rather than running from the ZIP or a read-only disk image.
 
@@ -41,6 +41,7 @@ Download **Sokak-1.6.0-universal.zip** from the release page. Unzip it and move 
 
 - Click the little cloud in the top-right menu bar. Choose **Rain**, **Snow**, or **Mist**, then **Let the weather in**.
 - **Over my windows** leaves the screen interactive. **A street somewhere** covers the selected display with a photograph and catches mouse clicks; press **Escape** to leave it.
+- **Browse without pausing:** while a street is open, press **→ / ←** or click the bottom-corner arrows for the next/previous photograph. The list wraps around. Weather matching limits browsing to the current weather; turn it off to browse every photograph. The current image stays visible while the next one loads in the background. Rain, water beads, a moving wiper, sound and the sleep timer continue.
 - Tune intensity, wind, sound, volume, dimming, display selection, and a 15/30/60/120-minute timer. Rain intensity controls how often drops strike the glass. Their size and approach speed keep the same distribution at every intensity. Existing water stays on the pane when rain is turned down.
 - **Window glass** is on by default. Rain is viewed almost end-on, like looking up through a shallow roof window. A drop approaches its contact point, briefly spreads into an irregular wet patch, recoils and leaves a bead, sometimes with a few tiny satellite beads. Water joins nearby beads and slowly drains. Snow keeps its distant flakes, soft close flakes, occasional pane contact and light edge frost.
 - **Rain starts on clean glass.** Each session begins dry; water builds up only as drops arrive. Beads stay instead of disappearing on a timer. Small drops stay pinned, while merged, heavier water can slide off the lower edge. More rain adds more water; changing intensity keeps what is already there.

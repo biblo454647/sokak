@@ -116,6 +116,7 @@ enum QualityCheck {
         guard wiperAudio.prepareToPlay(), wiperAudio.numberOfChannels == 2,
               abs(wiperAudio.duration - Double(WiperMotion.duration)) < 0.001 else { throw CocoaError(.fileReadCorruptFile) }
         report["wiperAudio"] = "Bounded stereo rubber strokes match the 2.35-second sweep; silent endpoints"
+        for scene in model.scenes { _ = model.thumbnail(scene, loadImmediately: true) }
         model.preferences.backdrop = .istanbul
         try snapshotUI(model: model, output: output.appendingPathComponent("menu.png"))
         model.libraryVisible = true

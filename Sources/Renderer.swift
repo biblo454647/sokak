@@ -235,6 +235,8 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private var preferences: Preferences
     private var photo: MTLTexture?
     private var photoURL: URL?
+    private var displayedPhotoURL: URL?
+    private let photoLoader: PhotoLoader
     private let start = CACurrentMediaTime()
     private let weatherOffset = Float.random(in: 0...5000)
     private var lastFrame: CFTimeInterval?
@@ -242,6 +244,7 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
     private let resources = WeatherFrameResources()
     private let gentle = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var onError: ((String) -> Void)?
+    var onPhotoError: ((String) -> Void)?
     var onRainContacts: (([RainContact]) -> Void)?
     var onWiperStart: (() -> Void)?
     private var hasReportedError = false
@@ -262,18 +265,38 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
 
     init(gpu: WeatherGPU, preferences: Preferences, surface: GlassSimulation? = nil) {
         self.gpu = gpu
+        self.photoLoader = PhotoLoader(decode: gpu.loadPhoto)
         self.preferences = preferences
         if let surface { self.surface = surface }
         super.init()
     }
-    func configure(_ preferences: Preferences, photoURL: URL?) throws {
+    func configure(_ preferences: Preferences, photoURL: URL?) {
         self.preferences = preferences
         if preferences.weather != .rain || !preferences.windowGlass { surface.cancelWipe(); pendingWipe = false }
+        updateCadence()
         if self.photoURL != photoURL {
-            photo = try photoURL.map(gpu.loadPhoto)
             self.photoURL = photoURL
+            guard let photoURL else {
+                photoLoader.cancel(); photo = nil; displayedPhotoURL = nil
+                return
+            }
+            photoLoader.load(photoURL) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let texture):
+                    self.photo = texture
+                    self.displayedPhotoURL = photoURL
+                case .failure:
+                    self.onPhotoError?("Could not load that photograph. Try another street.")
+                }
+            }
         }
     }
+    #if SOKAK_INTERACTION_TEST
+    var navigationSnapshot: (photo: URL?, elapsed: Float, impacts: Int, drops: Int, wiping: Bool) {
+        (displayedPhotoURL, surface.elapsed, surface.impacts, surface.drops.count, surface.wiper.active)
+    }
+    #endif
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
     func draw(in view: MTKView) {
         self.view = view
@@ -334,9 +357,16 @@ final class WeatherRenderer: NSObject, MTKViewDelegate {
 final class WeatherWindow: NSWindow {
     var immersive = false
     var onEscape: (() -> Void)?
+    var onBrowse: ((Int) -> Void)?
+    @objc func nextStreet() { if immersive { onBrowse?(1) } }
+    @objc func previousStreet() { if immersive { onBrowse?(-1) } }
     override var canBecomeKey: Bool { immersive }
     override var canBecomeMain: Bool { false }
     override func keyDown(with event: NSEvent) {
+        if immersive, event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
+            if event.keyCode == 124 { nextStreet(); return }
+            if event.keyCode == 123 { previousStreet(); return }
+        }
         if event.keyCode == 53 { onEscape?() } else { super.keyDown(with: event) }
     }
 }
@@ -370,9 +400,9 @@ final class OverlayController {
     }
     func focusImmersive() {
         guard model.running, model.preferences.backdrop == .istanbul else { return }
-        NSApp.activate(ignoringOtherApps: true)
-        let window = windows.first(where: { $0.0.frame.contains(NSEvent.mouseLocation) })?.0 ?? windows.first?.0
-        window?.makeKeyAndOrderFront(nil)
+        guard let window = windows.first(where: { $0.0.frame.contains(NSEvent.mouseLocation) })?.0 ?? windows.first?.0 else { return }
+        if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
+        if !window.isKeyWindow || !window.isVisible { window.makeKeyAndOrderFront(nil) }
     }
     func update() {
         guard model.running else { stop(); return }
@@ -399,6 +429,7 @@ final class OverlayController {
                     window.immersive = p.backdrop == .istanbul
                     window.ignoresMouseEvents = !window.immersive
                     window.onEscape = { [weak model] in model?.stop() }
+                    window.onBrowse = { [weak model] direction in model?.browseStreet(direction) }
                     window.backgroundColor = .clear
                     window.isOpaque = false
                     window.hasShadow = false
@@ -415,6 +446,7 @@ final class OverlayController {
                     view.autoresizingMask = [.width, .height]
                     let renderer = WeatherRenderer(gpu: gpu, preferences: p)
                     renderer.onError = { [weak model] message in model?.stop(); model?.error = message }
+                    renderer.onPhotoError = { [weak model] message in model?.error = message }
                     if windows.isEmpty {
                         // Sound follows one display, so multi-monitor sessions do
                         // not multiply the same ambient gain or contact frequency.
@@ -424,25 +456,39 @@ final class OverlayController {
                     view.delegate = renderer
                     window.contentView = view
                     if window.immersive {
-                        let label = NSTextField(labelWithString: "ESC TO LEAVE  ·  ⌃⌥⌘S TO PAUSE  ·  MENU BAR FOR CONTROLS")
+                        let label = NSTextField(labelWithString: "← → CHANGE STREET  ·  ESC TO LEAVE  ·  MENU BAR FOR CONTROLS")
                         label.font = .systemFont(ofSize: 10, weight: .medium)
                         label.textColor = NSColor.white.withAlphaComponent(0.75)
                         label.alignment = .center
                         label.frame = NSRect(x: 0, y: 25, width: screen.frame.width, height: 16)
                         label.autoresizingMask = [.width]
                         view.addSubview(label)
+                        for forward in [false, true] {
+                            let title = forward ? "Next street" : "Previous street"
+                            let button = NSButton(image: NSImage(systemSymbolName: forward ? "chevron.right" : "chevron.left", accessibilityDescription: title)!,
+                                                  target: window, action: forward ? #selector(WeatherWindow.nextStreet) : #selector(WeatherWindow.previousStreet))
+                            button.setAccessibilityLabel(title)
+                            button.toolTip = title + (forward ? " (→)" : " (←)")
+                            button.isBordered = false; button.refusesFirstResponder = true
+                            button.contentTintColor = NSColor.white.withAlphaComponent(0.85)
+                            button.wantsLayer = true
+                            button.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.35).cgColor
+                            button.layer?.cornerRadius = 18
+                            button.frame = NSRect(x: forward ? screen.frame.width - 66 : 26, y: 18, width: 40, height: 36)
+                            button.autoresizingMask = forward ? [.minXMargin] : [.maxXMargin]
+                            view.addSubview(button)
+                        }
                     }
                     windows.append((window, view, renderer))
                 }
                 signature = key
             }
             for (window, view, renderer) in windows {
-                try renderer.configure(p, photoURL: p.backdrop == .istanbul ? model.scene.map(Assets.url) : nil)
-                view.preferredFramesPerSecond = p.economical || ProcessInfo.processInfo.isLowPowerModeEnabled ? 30 : 60
-                view.isPaused = false
+                renderer.configure(p, photoURL: p.backdrop == .istanbul ? model.scene.map(Assets.url) : nil)
+                if view.isPaused { view.isPaused = false }
                 if !window.isVisible { window.orderFrontRegardless() }
             }
-            if p.backdrop == .istanbul, !NSApp.windows.contains(where: { $0.isKeyWindow && !($0 is WeatherWindow) }) {
+            if p.backdrop == .istanbul, NSApp.keyWindow == nil {
                 windows.first?.0.makeKey()
             }
         } catch {

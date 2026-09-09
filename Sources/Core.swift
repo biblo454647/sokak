@@ -124,6 +124,15 @@ struct StreetScene: Codable, Identifiable, Equatable {
             ?? current?.id
             ?? scenes.first?.id
     }
+
+    static func adjacent(to id: String, direction: Int, weather: Weather, matching: Bool, scenes: [StreetScene]) -> StreetScene? {
+        let choices = matching ? scenes.filter { $0.suits(weather) } : scenes
+        guard !choices.isEmpty, direction != 0 else { return nil }
+        guard let index = choices.firstIndex(where: { $0.id == id }) else {
+            return direction > 0 ? choices.first : choices.last
+        }
+        return choices[(index + (direction > 0 ? 1 : -1) + choices.count) % choices.count]
+    }
 }
 
 struct SessionClock {

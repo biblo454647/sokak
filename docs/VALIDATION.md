@@ -60,6 +60,16 @@ The packaged app renders all 22 curated photographs at 1440 × 900 through the a
 
 Reproduce the gallery frames with `dist/Sokak.app/Contents/MacOS/Sokak --self-test docs/qa --gallery-preview`. The public gallery overview uses six of these actual renderer frames; its individual photo licenses are listed in [World gallery credits](WORLD-GALLERY-CREDITS.md).
 
+## Continuous street browsing in 1.6.1
+
+Core tests traverse two complete next-photo loops for rain, snow and mist, check reverse wraparound, all-street mode and missing/single/empty catalogues. Native interaction checks dispatch arrow keys and the bottom-corner buttons through the live model and overlay. They verify that the same window, renderer, water simulation and active wiper survive a change, and that weather/timer settings are preserved. Snow browsing stays in the winter pool; stopped sessions and desktop mode ignore browsing requests.
+
+The packaged UI was also exercised with actual Right and Left key events and a click on the on-screen Next street button: Galata → Paris → Kyoto → Paris while rain remained running. The new controls and retained water were visually inspected; Escape returned to the paused menu and the isolated QA copy was quit.
+
+A burst of 29 arrow events resolves to the final selection. Background photo-loader checks reject stale results, superseded requests and cancelled completions. An unreadable photograph retains the last image and running session. Both full-size photo decoding and menu thumbnail decoding run off the main thread. The current full-size image remains visible until the replacement is ready; thumbnail placeholders preserve the menu layout.
+
+At 1920 × 1080 on the test display, the navigation sample recorded 53 presentation-handler intervals: 18.89 ms p95 and 21.13 ms maximum. The synchronous 29-event burst took 3.93 ms. These are a bounded local callback-cadence sample, not physical scanout timestamps or a universal device guarantee. The separate 20-transition menu check kept its origin and size, and the existing three-cycle wiper check passed. Run `bash scripts/check_interactions.sh docs/qa/interactions` after a build, with other UI tests closed so they cannot dismiss the transient menu.
+
 ## Native interaction coverage
 
 The app has been exercised through its native interface for weather selection, desktop and photograph modes, seasonal snow matching, winter filtering, photograph selection, sound on/off, low-power mode, timer selection, starting and pausing, and Escape from an immersive session.

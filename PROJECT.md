@@ -1,7 +1,7 @@
 # Sokak
 
 - Purpose: Offline native macOS menu bar relaxation app with weather overlays, ambient sound, and a weather-matched photograph library from İstanbul and around the world.
-- Current release: 1.6.0. The offline library now contains 22 original photographs from 12 cities: 13 rainy views, eight snowy views and one mist view. Sunny and repetitive views are retired. Rain, snow, clean starts, persistent water, the smooth wiper, stable menu, shortcuts and signed updates retain their existing behavior.
+- Current release: 1.6.1. Right/left arrow keys and bottom-corner buttons browse photographs in a loop without restarting weather, surface water, the wiper, audio or the sleep timer. Weather matching controls the browsing pool. Photo decoding runs in the background and ignores superseded requests. The 22-photo library from 12 cities and signed updates remain available.
 - Lifecycle: active
 - Maintainers: Sokak contributors
 - GitHub: https://github.com/biblo454647/sokak
