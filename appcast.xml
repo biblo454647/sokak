@@ -6,6 +6,22 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Sokak</title>
         <item>
+            <title>1.6.1</title>
+            <pubDate>Wed, 09 Sep 2026 10:31:29 +0100</pubDate>
+            <link>https://github.com/biblo454647/sokak/releases/latest</link>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<!doctype html><html lang="en"><meta charset="utf-8"><title>Sokak 1.6.1</title>
+<h1>Keep wandering, keep the rain</h1>
+<p>While a street photograph is open, press <b>→</b> for the next view or <b>←</b> to go back. You can also click the arrows in the bottom corners. After the last photograph, the list starts again.</p>
+<p>Rain, water on the glass, a moving wiper, sound and your sleep timer keep going. The current photograph stays visible while the next one loads in the background.</p>
+<p>Weather matching keeps you among photographs suitable for the current rain, snow or mist. Switch matching off in Details to browse the entire library. All 22 original photographs remain available offline.</p>
+</html>
+]]></description>
+            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.6.1/Sokak-1.6.1-universal.zip" length="153094956" type="application/octet-stream" sparkle:edSignature="jWnO1eBnyh5B4HUHSuQAAROoPGC9XEu0Tzt3S+PWt9GidHH2i401bGxA7PblCbt+TKwXkj5O6Qxjliw1yuJYBg=="/>
+        </item>
+        <item>
             <title>1.6.0</title>
             <pubDate>Tue, 08 Sep 2026 17:00:06 +0100</pubDate>
             <link>https://github.com/biblo454647/sokak/releases/latest</link>
@@ -41,24 +57,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.2/Sokak-1.5.2-universal.zip" length="65570739" type="application/octet-stream" sparkle:edSignature="e5L/BY2NfaZ3qaSLKlISjL1n9H5BQi42fZgG2WOcHsn+UGie02o5kn308RZ28YhD56jHwhaxYYEYfn7wprEXBw=="/>
         </item>
-        <item>
-            <title>1.5.1</title>
-            <pubDate>Tue, 08 Sep 2026 14:54:03 +0100</pubDate>
-            <link>https://github.com/biblo454647/sokak/releases/latest</link>
-            <sparkle:version>9</sparkle:version>
-            <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<!doctype html>
-<html lang="en"><meta charset="utf-8"><title>Sokak 1.5.1</title>
-<body><h2>Rain starts on clean glass</h2>
-<p>Starting rain now gives you a completely dry pane. Drops approach and land before water begins to accumulate, instead of opening with a pre-wetted screen. Stopping and starting again also begins fresh.</p>
-<p>Persistent water, the configurable wiper, rain intensity and snow behavior are preserved.</p></body></html>
-]]></description>
-            <enclosure url="https://github.com/biblo454647/sokak/releases/download/v1.5.1/Sokak-1.5.1-universal.zip" length="65562156" type="application/octet-stream" sparkle:edSignature="Nq5Yl/b18z/pmbnHIcrzoqKZtb+Br633Bw4YijsZUlD/pjqDDy6bFEK61+LrZCRFnKM7s5imsXW7AMQl7c1mAg=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: YG34GvpHpY4GNpU1LxJU/yIoqr19TzlovEXqSBTzIkaaptGZ0CcwLJNCpcqQNVoJFGQLC0XAPyySBrh1S89GBg==
-length: 4563
+edSignature: nORQPrkuFvmDd+Aa1b75Bk7LNEu37SCF5kDxb1k3ES/+jjF9seTrMdTlNiF+O2taYq8YmZ6ZUZWTrCIo/SNyAQ==
+length: 4836
 -->
