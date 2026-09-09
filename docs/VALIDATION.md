@@ -100,6 +100,8 @@ For 1.5.2, the unchanged official 1.5.1 app discovered the release with correct 
 
 For 1.6.0, the unchanged official 1.5.2 app discovered the release and displayed the 22-photo, 12-city gallery notes. All five release assets were downloaded anonymously and matched their local hashes; the public signed feed, archive and extracted bundle signature verified. The discovery window was closed without skipping, and the QA app was quit. Full installation/relaunch coverage remains the 1.5.0 test above.
 
+For 1.6.1, the unchanged official 1.6.0 app discovered the release and displayed the arrow-navigation notes. All five assets were downloaded anonymously and matched their local hashes. The public feed, archive and extracted bundle signatures verified. The discovery window was closed without skipping and the QA copy quit. Full installation/relaunch coverage remains the 1.5.0 test above.
+
 Start/pause and sound shortcuts have been checked with app-targeted key events. Carbon global registration succeeds without requesting Accessibility access. Physical keyboard dispatch while another app is active still needs device testing. The menu controls remain available if a shortcut conflicts.
 
 ## Remaining checks and limitations
